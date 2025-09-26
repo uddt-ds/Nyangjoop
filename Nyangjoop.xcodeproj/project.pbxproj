@@ -14,7 +14,7 @@
 		9BCBFDA42E84C4A5005493A9 /* Exceptions for "Nyangjoop" folder in "Nyangjoop" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				App/Info.plist,
 			);
 			target = 9BCBFD912E84C4A3005493A9 /* Nyangjoop */;
 		};
@@ -149,7 +149,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4G4JFKFU2U;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Nyangjoop/Info.plist;
+				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "냥줍";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -186,7 +186,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4G4JFKFU2U;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Nyangjoop/Info.plist;
+				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "냥줍";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
