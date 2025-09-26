@@ -12,6 +12,8 @@ import RxCocoa
 final class HomeViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
 
+    let locationManager = LocationManager.shared
+
     struct Input {
         let viewDidLoad: Observable<Void>
         let menuToggleTapped: Observable<Void>
@@ -34,6 +36,14 @@ final class HomeViewModel: ViewModelProtocol {
     }
 
     func transform(_ input: Input) -> Output {
+
+        input.viewDidLoad
+            .subscribe { [weak self] _ in
+                guard let self else { return }
+                self.locationManager.requestLocationPermission()
+            }
+            .disposed(by: disposeBag)
+
         let isMenuExpanded = input.menuToggleTapped
             .scan(false) { currentState, _ in !currentState }
             .startWith(false)
