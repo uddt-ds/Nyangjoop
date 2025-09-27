@@ -17,6 +17,8 @@ final class HomeViewController: BaseViewController {
 
     private let viewModel = HomeViewModel()
 
+    private let viewWillAppearSubject = PublishSubject<Void>()
+
     private var isMenuExpanded = false
 
     private let mapView: MKMapView = {
@@ -98,10 +100,16 @@ final class HomeViewController: BaseViewController {
         button.tintColor = .systemGray
         return button
     }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
         bind()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewWillAppearSubject.onNext(())
     }
 
     override func configureHierarchy() {
@@ -176,6 +184,10 @@ final class HomeViewController: BaseViewController {
         super.configureView()
     }
 
+
+}
+
+extension HomeViewController {
     private func setupMapView() {
         mapView.delegate = self
 
@@ -189,6 +201,19 @@ final class HomeViewController: BaseViewController {
         )
 
         mapView.setRegion(coordinateRegion, animated: false)
+
+        mapView.register(CatAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatAnnotationView.identifier)
+    }
+
+    private func moveToLocation(_ location: CLLocation) {
+        let regionRadius: CLLocationDistance = 500
+        let coordinateRegion = MKCoordinateRegion(
+            center: location.coordinate,
+            latitudinalMeters: regionRadius,
+            longitudinalMeters: regionRadius
+        )
+
+        mapView.setRegion(coordinateRegion, animated: true)
     }
 }
 
@@ -197,6 +222,7 @@ extension HomeViewController {
     private func bind() {
         let input = HomeViewModel.Input(
             viewDidLoad: .just(()),
+            viewWillAppear: viewWillAppearSubject.asObservable(),
             menuToggleTapped: menuToggleButton.rx.tap.asObservable(),
             storeToggleTapped: storeToggleButton.rx.tap.asObservable(),
             galleryToggleTapped: galleryToggleButton.rx.tap.asObservable(),
@@ -204,7 +230,8 @@ extension HomeViewController {
             homeButtonTapped: homeButton.rx.tap.asObservable(),
             catRegisterTapped: catRegisterButton.rx.tap.asObservable(),
             logRecordTapped: logRecordButton.rx.tap.asObservable(),
-            profileTapped: profileButton.rx.tap.asObservable()
+            profileTapped: profileButton.rx.tap.asObservable(),
+            catAnnotationTapped: .empty()
         )
 
         let output = viewModel.transform(input)
@@ -214,6 +241,7 @@ extension HomeViewController {
                 owner.toggleMenuButtons(isExpanded)
             }
             .disposed(by: disposeBag)
+
     }
 
     private func toggleMenuButtons(_ isExpanded: Bool) {
