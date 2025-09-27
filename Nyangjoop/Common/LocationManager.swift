@@ -5,10 +5,11 @@
 //  Created by Lee on 9/26/25.
 //
 
-import Foundation
+import UIKit
 import CoreLocation
 import RxSwift
 import RxCocoa
+
 
 final class LocationManager: NSObject {
     static let shared = LocationManager()
@@ -55,6 +56,49 @@ final class LocationManager: NSObject {
         }
 
         locationManager.requestWhenInUseAuthorization()
+    }
+
+    func requestCurrentLocation() -> Single<CLLocation> {
+        return Single.create { [weak self] observer in
+            guard let self = self else {
+                observer(.failure(LocationError.unknown))
+                return Disposables.create()
+            }
+
+            guard self.isLocationEnabled else {
+                observer(.failure(LocationError.permissionDenied))
+                return Disposables.create()
+            }
+
+            if let currentLocation = self.currentLocationRelay.value,
+               abs(currentLocation.timestamp.timeIntervalSinceNow) < 30 {
+                observer(.success(currentLocation))
+                return Disposables.create()
+            }
+
+            let disposable = self.currentLocation
+                .compactMap { $0 }
+                .take(1)
+                .timeout(.seconds(10), scheduler: MainScheduler.instance)
+                .subscribe(
+                    onNext: { location in
+                        observer(.success(location))
+                    },
+                    onError: { error in
+                        observer(.failure(LocationError.timeout))
+                    })
+
+            self.locationManager.requestLocation()
+
+            return disposable
+        }
+    }
+
+    func openLocationSettings() {
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl)
+        }
     }
 
     func startUpdatingLocation() {
