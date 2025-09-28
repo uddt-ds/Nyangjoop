@@ -21,6 +21,10 @@ final class HomeViewController: BaseViewController {
 
     private var isMenuExpanded = false
 
+    private let catAnnotationTappedSubject = PublishSubject<Cat>()
+    private var currentCats: [Cat] = []
+    private var isShowingGalleryMarkers = false
+
     private let mapView: MKMapView = {
         let mapView = MKMapView()
         mapView.showsUserLocation = false
@@ -190,18 +194,7 @@ final class HomeViewController: BaseViewController {
 extension HomeViewController {
     private func setupMapView() {
         mapView.delegate = self
-
-        let initialLocation = CLLocation(latitude: 37.5665, longitude: 126.9780)
-        let regionRadius: CLLocationDistance = 1000
-
-        let coordinateRegion = MKCoordinateRegion(
-            center: initialLocation.coordinate,
-            latitudinalMeters: regionRadius,
-            longitudinalMeters: regionRadius
-        )
-
-        mapView.setRegion(coordinateRegion, animated: false)
-
+        mapView.setToDefaultLoction()
         mapView.register(CatAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatAnnotationView.identifier)
     }
 
@@ -231,10 +224,16 @@ extension HomeViewController {
             catRegisterTapped: catRegisterButton.rx.tap.asObservable(),
             logRecordTapped: logRecordButton.rx.tap.asObservable(),
             profileTapped: profileButton.rx.tap.asObservable(),
-            catAnnotationTapped: .empty()
+            catAnnotationTapped: catAnnotationTappedSubject.asObservable()
         )
 
         let output = viewModel.transform(input)
+
+        output.cats
+            .drive(with: self) { owner, cats in
+                owner.updateCatMarkers(cats)
+            }
+            .disposed(by: disposeBag)
 
         output.isMenuExpanded
             .drive(with: self) { owner, isExpanded in
@@ -242,8 +241,47 @@ extension HomeViewController {
             }
             .disposed(by: disposeBag)
 
-    }
+        output.showGalleryMarkers
+            .drive(with: self) { owner, showGallery in
+                owner.isShowingGalleryMarkers = showGallery
+                owner.updateCatMarkerImages()
+            }
+            .disposed(by: disposeBag)
 
+
+        output.moveToCurrentLocation
+            .drive(with: self) { owner, location in
+                owner.moveToLocation(location)
+            }
+            .disposed(by: disposeBag)
+
+        output.locationError
+            .drive(with: self) { owner, errorMessage in
+                owner.showErrorAlert(message: errorMessage)
+            }
+            .disposed(by: disposeBag)
+
+        output.showLocationPermissionAlert
+            .drive(with: self) { owner, _ in
+                owner.showLocationPermissionAlert()
+            }
+            .disposed(by: disposeBag)
+
+        output.showCatDetail
+            .drive(with: self) { owner, cat in
+                owner.showCatDetailAlert(cat)
+            }
+            .disposed(by: disposeBag)
+
+        output.navigateToCatRegister
+            .drive(with: self) { owner, _ in
+                owner.presentCatRegisterViewController()
+            }
+            .disposed(by: disposeBag)
+    }
+}
+
+extension HomeViewController {
     private func toggleMenuButtons(_ isExpanded: Bool) {
         isMenuExpanded = isExpanded
 
@@ -258,8 +296,93 @@ extension HomeViewController {
             self.galleryToggleButton.isHidden = true
         }
     }
+
+    private func updateCatMarkers(_ cats: [Cat]) {
+        let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
+        mapView.removeAnnotations(existingCatAnnotations)
+
+        currentCats = cats
+        let catAnnotations = cats.map { CatAnnotation(cat: $0) }
+        mapView.addAnnotations(catAnnotations)
+    }
+
+    private func updateCatMarkerImages() {
+        for annotation in mapView.annotations {
+            if let catAnnotation = annotation as? CatAnnotation,
+               let annotationView = mapView.view(for: annotation) as? CatAnnotationView {
+                annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
+            }
+        }
+    }
+
+    private func presentCatRegisterViewController() {
+        let catRegisterVC = CatRegisterViewController()
+        let nav = UINavigationController(rootViewController: catRegisterVC)
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true)
+    }
+
+    private func showErrorAlert(message: String) {
+        let alert = UIAlertController(title: "위치 오류", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
+    }
+
+    private func showLocationPermissionAlert() {
+         let alert = UIAlertController(
+             title: "위치 권한 필요",
+             message: "현재 위치 기능을 사용하려면 위치 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
+             preferredStyle: .alert
+         )
+
+         alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+             LocationManager.shared.openLocationSettings()
+         })
+
+         alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+
+         present(alert, animated: true)
+     }
+
+    private func showCatDetailAlert(_ cat: Cat) {
+         let alert = UIAlertController(
+             title: cat.name,
+             message: "이 고양이와 관련된 작업을 선택해주세요.",
+             preferredStyle: .actionSheet
+         )
+
+         alert.addAction(UIAlertAction(title: "길찾기", style: .default) { [weak self] _ in
+             guard let self else { return }
+             self.showDirections(to: cat)
+         })
+
+         alert.addAction(UIAlertAction(title: "고양이 정보 보기", style: .default) { _ in
+             print("고양이 정보 보기 - \(cat.name)")
+         })
+
+         alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+
+         present(alert, animated: true)
+     }
+
+    private func showDirections(to cat: Cat) {
+        let coordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = cat.name
+
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
+    }
 }
 
-extension HomeViewController: MKMapViewDelegate {
 
+
+extension HomeViewController: MKMapViewDelegate {
+    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        if let catAnnotation = view.annotation as? CatAnnotation {
+            catAnnotationTappedSubject.onNext(catAnnotation.cat)
+        }
+    }
 }

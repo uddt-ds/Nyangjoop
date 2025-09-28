@@ -16,7 +16,6 @@ final class HomeViewModel: ViewModelProtocol {
     private let locationManager = LocationManager.shared
     private let realmManager = RealmManager.shared
 
-
     struct Input {
         let viewDidLoad: Observable<Void>
         let viewWillAppear: Observable<Void>
@@ -57,13 +56,6 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: [])
 
-        input.viewDidLoad
-            .subscribe { [weak self] _ in
-                guard let self else { return }
-                self.locationManager.requestLocationPermission()
-            }
-            .disposed(by: disposeBag)
-
         let isMenuExpanded = input.menuToggleTapped
             .scan(false) { currentState, _ in !currentState }
             .startWith(false)
@@ -80,22 +72,19 @@ final class HomeViewModel: ViewModelProtocol {
             .asDriver(onErrorJustReturn: false)
 
         let currentLocationResult = input.currentLocationTapped
-             .flatMap { [weak self] _ -> Observable<Result<CLLocation, LocationError>> in
-                 guard let self = self else {
-                     return Observable.just(.failure(.unknown))
-                 }
+            .flatMap { [weak self] _ -> Observable<Result<CLLocation, LocationError>> in
+                guard let self = self else {
+                    return Observable.just(.failure(.unknown))
+                }
 
-                 return self.locationManager.requestCurrentLocation()
-                     .asObservable()
-                     .map { Result.success($0) }
-                     .catch { error in
-                         if let locationError = error as? LocationError {
-                             return Observable.just(.failure(locationError))
-                         }
-                         return Observable.just(.failure(.unknown))
-                     }
-             }
-             .share()
+                return self.locationManager.getCurrentLocation()
+                    .asObservable()
+                    .map { Result.success($0) }
+                    .catch { error in
+                        return Observable.just(.failure(error as? LocationError ?? .unknown))
+                    }
+            }
+            .share()
 
         let moveToCurrentLocation = currentLocationResult
             .compactMap { result in
@@ -115,9 +104,13 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
 
-        let showLocationPermissionAlert = locationManager.locationError
-            .filter { $0 == .permissionDenied }
-            .map { _ in () }
+        let showLocationPermissionAlert = currentLocationResult
+            .compactMap { result in
+                if case .failure(let error) = result, error == .permissionDenied {
+                    return ()
+                }
+                return nil
+            }
             .asDriver(onErrorJustReturn: ())
 
         let currentLocation = locationManager.currentLocation
