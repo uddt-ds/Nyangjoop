@@ -17,6 +17,8 @@ final class HomeViewController: BaseViewController {
 
     private let viewModel = HomeViewModel()
 
+    private let locationManager = LocationManager.shared
+
     private let viewWillAppearSubject = PublishSubject<Void>()
 
     private var isMenuExpanded = false
@@ -27,7 +29,7 @@ final class HomeViewController: BaseViewController {
 
     private let mapView: MKMapView = {
         let mapView = MKMapView()
-        mapView.showsUserLocation = false
+        mapView.showsUserLocation = true
         mapView.userTrackingMode = .none
         return mapView
     }()
@@ -278,6 +280,8 @@ extension HomeViewController {
                 owner.presentCatRegisterViewController()
             }
             .disposed(by: disposeBag)
+
+
     }
 }
 
@@ -335,8 +339,9 @@ extension HomeViewController {
              preferredStyle: .alert
          )
 
-         alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
-             LocationManager.shared.openLocationSettings()
+         alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { [weak self] _ in
+             guard let self else { return }
+             locationManager.openLocationSettings()
          })
 
          alert.addAction(UIAlertAction(title: "취소", style: .cancel))
@@ -365,19 +370,7 @@ extension HomeViewController {
          present(alert, animated: true)
      }
 
-    private func showDirections(to cat: Cat) {
-        let coordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = cat.name
-
-        mapItem.openInMaps(launchOptions: [
-            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
-        ])
-    }
 }
-
-
 
 extension HomeViewController: MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
@@ -385,4 +378,123 @@ extension HomeViewController: MKMapViewDelegate {
             catAnnotationTappedSubject.onNext(catAnnotation.cat)
         }
     }
+
+    func mapView(_ mapView: MKMapView, rendererFor overlay: any MKOverlay) -> MKOverlayRenderer {
+        if let polyline = overlay as? MKPolyline {
+            let renderer = MKPolylineRenderer(polyline: polyline)
+            renderer.strokeColor = .retroRed
+            renderer.lineWidth = 4.0
+            return renderer
+        }
+        return MKOverlayRenderer(overlay: overlay)
+    }
 }
+
+extension HomeViewController {
+
+    private func showDirections(to cat: Cat) {
+        let destinationCoordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
+
+        locationManager.getCurrentLocation()
+            .observe(on: MainScheduler.instance)
+            .subscribe { [weak self] currentLocation in
+                guard let self else { return }
+                self.calculateAndShowRoute(from: currentLocation.coordinate, to: destinationCoordinate, destinationName: cat.name)
+            } onFailure: { [weak self] _ in
+                guard let self else { return }
+                self.calculateAndShowRoute(from: AppLocationConfig.defaultCoordinate, to: destinationCoordinate, destinationName: cat.name)
+            }
+            .disposed(by: disposeBag)
+
+    }
+
+    private func calculateAndShowRoute(from source: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, destinationName: String) {
+        let sourcePlacemark = MKPlacemark(coordinate: source)
+        let destinationPlacemark = MKPlacemark(coordinate: destination)
+
+        let sourceMapItem = MKMapItem(placemark: sourcePlacemark)
+        let destinationMapItem = MKMapItem(placemark: destinationPlacemark)
+        destinationMapItem.name = destinationName
+
+        let directionRequest = MKDirections.Request()
+        directionRequest.source = sourceMapItem
+        directionRequest.destination = destinationMapItem
+        directionRequest.transportType = .walking
+
+        let directions = MKDirections(request: directionRequest)
+        directions.calculate { [weak self] response, error in
+            guard let self else { return }
+
+            if let error {
+                self.showRouteError(message: "경로를 찾을 수 없습니다")
+                return
+            }
+
+            guard let response, let route = response.routes.first else {
+                self.showRouteError(message: "경로를 찾을 수 없습니다")
+                return
+            }
+
+            self.displayRoute(route, destinationName: destinationName)
+        }
+    }
+
+    private func displayRoute(_ route: MKRoute, destinationName: String) {
+        mapView.removeOverlays(mapView.overlays)
+
+        mapView.addOverlay(route.polyline)
+
+        let rect = route.polyline.boundingMapRect
+        let region = MKCoordinateRegion(rect)
+        let adjustedRegion = mapView.regionThatFits(region)
+        mapView.setRegion(adjustedRegion, animated: true)
+
+        showRouteInfo(route: route, destinationName: destinationName)
+    }
+
+    private func showRouteInfo(route: MKRoute, destinationName: String) {
+        let distance = Measurement(value: route.distance, unit: UnitLength.meters)
+        let time = route.expectedTravelTime
+
+        let formatter = MeasurementFormatter()
+        formatter.unitOptions = .providedUnit
+        formatter.numberFormatter.maximumFractionDigits = 1
+
+        let distanceString = formatter.string(from: distance.converted(to: .kilometers))
+        let timeString = formatTravelTime(time)
+
+        let alert = UIAlertController(title: "\(destinationName)까지의 경로", message: "거리: \(distanceString) | 시간: \(timeString)", preferredStyle: .alert)
+
+        alert.addAction(UIAlertAction(title: "경로 지우기", style: .destructive) { [weak self] _ in
+            guard let self else { return }
+            self.clearRoute()
+        })
+
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+
+        present(alert, animated: true)
+    }
+
+    private func clearRoute() {
+        mapView.removeOverlays(mapView.overlays)
+        mapView.setToDefaultLoction(animated: true)
+    }
+
+    private func formatTravelTime(_ timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval / 60)
+        if minutes < 60 {
+            return "\(minutes)분"
+        } else {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return "\(hours)시간 \(remainingMinutes)분"
+        }
+    }
+
+    private func showRouteError(message: String) {
+        let alert = UIAlertController(title: "경로 오류", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
+    }
+}
+
