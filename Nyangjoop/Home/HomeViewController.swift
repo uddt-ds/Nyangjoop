@@ -280,8 +280,6 @@ extension HomeViewController {
                 owner.presentCatRegisterViewController()
             }
             .disposed(by: disposeBag)
-
-
     }
 }
 
@@ -311,12 +309,9 @@ extension HomeViewController {
     }
 
     private func updateCatMarkerImages() {
-        for annotation in mapView.annotations {
-            if let catAnnotation = annotation as? CatAnnotation,
-               let annotationView = mapView.view(for: annotation) as? CatAnnotationView {
-                annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
-            }
-        }
+        let catAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
+        mapView.removeAnnotations(catAnnotations)
+        mapView.addAnnotations(catAnnotations)
     }
 
     private func presentCatRegisterViewController() {
@@ -373,6 +368,14 @@ extension HomeViewController {
 }
 
 extension HomeViewController: MKMapViewDelegate {
+    func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
+        guard let catAnnotation = annotation as? CatAnnotation else { return nil }
+        let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: CatAnnotationView.identifier, for: annotation) as! CatAnnotationView
+        annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
+
+        return annotationView
+    }
+
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         if let catAnnotation = view.annotation as? CatAnnotation {
             catAnnotationTappedSubject.onNext(catAnnotation.cat)

@@ -146,6 +146,7 @@ final class HomeViewModel: ViewModelProtocol {
                       showCatDetail: showCatDetail,
                       navigateToCatRegister: navigateToCatRegister,
                       navigateToLogRecord: navigateToLogRecord,
-                      navigateToProfile: navigateToProfile)
+                      navigateToProfile: navigateToProfile
+                    )
     }
 }
