@@ -9,7 +9,7 @@ import CoreLocation
 import MapKit
 
 struct AppLocationConfig {
-    static let defaultCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9788)
+    static let defaultCoordinate = CLLocationCoordinate2D(latitude: 37.5534, longitude: 126.9696)
     static let defaultRadius: CLLocationDistance = 1000
 
     static var defaultLocation: CLLocation {

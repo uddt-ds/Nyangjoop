@@ -20,6 +20,8 @@ final class CatRegisterViewController: BaseViewController {
     private let photoSelectedSubject = PublishSubject<UIImage>()
     private let locationSetSubject = PublishSubject<CLLocationCoordinate2D>()
     private let characterSelectedSubject = BehaviorSubject<Int>(value: 5)
+    private var selectedCoordinate: CLLocationCoordinate2D?
+    private var selectedAddress: String?
 
     private let characters = CatCharacter.allCases
 
@@ -436,10 +438,11 @@ extension CatRegisterViewController {
     }
 
     private func showLocationPickerViewController() {
-        //TODO: LocationPickerViewController 구현 필요
-        let alert = UIAlertController(title: "위치 설정", message: "위치 선택 기능은 테스트가 필요합니다", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+        let locationPickerVC = LocationPickerViewController()
+        locationPickerVC.delegate = self
+
+        let navController = UINavigationController(rootViewController: locationPickerVC)
+        present(navController, animated: true)
     }
 
     private func updateRegisterButton(_ isEnabled: Bool) {
@@ -455,7 +458,8 @@ extension CatRegisterViewController {
         )
 
         alert.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-            self?.navigationController?.popViewController(animated: true)
+            guard let self else { return }
+            self.dismiss(animated: true)
         })
 
         present(alert, animated: true)
@@ -499,9 +503,15 @@ extension CatRegisterViewController: PHPickerViewControllerDelegate {
     }
 }
 
-//extension CatRegisterViewController: LocationPickerDelegate {
-//    
-//}
+extension CatRegisterViewController: LocationPickerDelegate {
+    func didSelectLocation(coordinate: CLLocationCoordinate2D, address: String) {
+        selectedCoordinate = coordinate
+        selectedAddress = address
+        locationLabel.text = address
+
+        locationSetSubject.onNext(coordinate)
+    }
+}
 
 
 extension CatRegisterViewController: UICollectionViewDataSource, UICollectionViewDelegate {
