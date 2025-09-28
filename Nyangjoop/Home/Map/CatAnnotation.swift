@@ -31,9 +31,19 @@ final class CatAnnotation: NSObject, MKAnnotation {
 }
 
 final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
-    private let containerView: UIView = {
+
+    private let bubbleContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .white
+        view.layer.cornerRadius = 15
+        view.isHidden = true
+        return view
+    }()
+
+    private let bubbleTailView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.isHidden = true
         return view
     }()
 
@@ -43,9 +53,22 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         return imageView
     }()
 
+    private let bubbleImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 12
+        imageView.isHidden = true
+        return imageView
+    }()
+
+    private var isShowingPhoto = false
+
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        setupView()
+        configureHierarchy()
+        configureLayout()
+        setupBubbleTail()
     }
 
     @available(*, unavailable)
@@ -53,57 +76,116 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         super.init(coder: aDecoder)
     }
 
-    private func setupView() {
+    private func configureHierarchy() {
         canShowCallout = true
-        addSubview(containerView)
-        containerView.addSubview(catImageView)
 
-        containerView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+        [bubbleContainerView, bubbleTailView, catImageView].forEach { addSubview($0) }
+        bubbleContainerView.addSubview(bubbleImageView)
+    }
+
+    private func configureLayout() {
+        catImageView.snp.makeConstraints { make in
+            make.top.centerX.equalToSuperview()
             make.size.equalTo(50)
         }
 
-        catImageView.snp.makeConstraints { make in
+        // 말풍선 컨테이너 (갤러리 모드)
+        bubbleContainerView.snp.makeConstraints { make in
+            make.top.centerX.equalToSuperview()
+            make.size.equalTo(CGSize(width: 80, height: 65))
+        }
+
+        bubbleImageView.snp.makeConstraints { make in
             make.center.equalToSuperview()
-            make.size.equalTo(44)
+            make.size.equalTo(CGSize(width: 70, height: 45))
+        }
+
+        // 말풍선 꼬리
+        bubbleTailView.snp.makeConstraints { make in
+            make.top.equalTo(bubbleContainerView.snp.bottom)
+            make.centerX.equalTo(bubbleContainerView)
+            make.size.equalTo(CGSize(width: 20, height: 15))
         }
     }
 
+    private func setupBubbleTail() {
+        bubbleTailView.layer.sublayers?.removeAll()
+
+        let tailLayer = CAShapeLayer()
+        let tailPath = UIBezierPath()
+
+        tailPath.move(to: CGPoint(x: 6, y: 0))
+        tailPath.addLine(to: CGPoint(x: 14, y: 0))
+        tailPath.addLine(to: CGPoint(x: 10, y: 12))
+        tailPath.close()
+
+        tailLayer.path = tailPath.cgPath
+        tailLayer.fillColor = UIColor.white.cgColor
+        tailLayer.strokeColor = UIColor.clear.cgColor
+
+        bubbleTailView.layer.addSublayer(tailLayer)
+    }
+
+
     override var intrinsicContentSize: CGSize {
-        return CGSize(width: 50, height: 50)
+        if isShowingPhoto {
+            return CGSize(width: 80, height: 65)
+        } else {
+            return CGSize(width: 50, height: 50)
+        }
+
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
         catImageView.image = nil
+        bubbleImageView.image = nil
     }
 
     func configure(with cat: Cat, showGalleryImage: Bool) {
         if showGalleryImage {
             // 갤러리 모드: 실제 사진이 있으면 사진, 없으면 noImage
             if !cat.visitLogs.isEmpty, let filePath = cat.visitLogs.first?.filePath, !filePath.isEmpty {
-                loadCatImage(from: filePath)
+                showBubbleMode()
+                loadCatImage(from: filePath, into: bubbleImageView)
             } else {
-                catImageView.image = UIImage(named: "noImage")
+                showBubbleMode()
+                bubbleImageView.image = UIImage(named: "noImage")
             }
         } else {
             // 기본 모드: 저장된 drawImage 사용
+            showDirectImageMode()
             catImageView.image = UIImage(named: cat.drawImage)
         }
+
+        invalidateIntrinsicContentSize()
     }
 
-    private func loadCatImage(from imagePath: String) {
+    private func loadCatImage(from imagePath: String, into imageView: UIImageView) {
         // Documents 디렉토리 경로 가져오기
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fullPath = documentsPath.appendingPathComponent(imagePath).path
 
         if let localImage = UIImage(contentsOfFile: fullPath) {
-            catImageView.image = localImage
+            imageView.image = localImage
         } else {
-            catImageView.image = UIImage(named: "noImage")
+            imageView.image = UIImage(named: "noImage")
         }
     }
 
+    private func showBubbleMode() {
+        catImageView.isHidden = true
+        bubbleContainerView.isHidden = false
+        bubbleTailView.isHidden = false
+        bubbleImageView.isHidden = false
+    }
+
+    private func showDirectImageMode() {
+        catImageView.isHidden = false
+        bubbleContainerView.isHidden = true
+        bubbleTailView.isHidden = true
+        bubbleImageView.isHidden = true
+    }
 }
 
 
