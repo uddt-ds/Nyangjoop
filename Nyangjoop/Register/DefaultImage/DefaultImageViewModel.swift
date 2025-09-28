@@ -25,15 +25,7 @@ final class DefaultImageViewModel: ViewModelProtocol {
         let selectedImage: Driver<UIImage>
     }
 
-    private let imageNames = [
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1",
-        "black1_x1", "black1_x1", "black1_x1"
-    ]
+    private let imageNames = DefaultCatImages.imageNames
 
     private let selectedIndexRelay = BehaviorRelay<Int?>(value: nil)
 
@@ -86,6 +78,12 @@ final class DefaultImageViewModel: ViewModelProtocol {
                       selectedIndex: selectedIndex,
                       isSelectButtonEnabled: isSelectButtonEnabled,
                       selectedImage: selectedImage)
+    }
+
+    func getCurrentSelectedImageName() -> String? {
+        guard let selectedIndex = selectedIndexRelay.value,
+              selectedIndex < imageNames.count else { return nil }
+        return imageNames[selectedIndex]
     }
 }
 
