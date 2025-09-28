@@ -43,12 +43,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         return imageView
     }()
 
-    private let defaultIconView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "pawprint.fill")
-        return imageView
-    }()
-
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         setupView()
@@ -63,7 +57,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         canShowCallout = true
         addSubview(containerView)
         containerView.addSubview(catImageView)
-        containerView.addSubview(defaultIconView)
 
         containerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -74,13 +67,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
             make.center.equalToSuperview()
             make.size.equalTo(44)
         }
-
-        defaultIconView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.size.equalTo(26)
-        }
-
-        showDefaultIcon()
     }
 
     override var intrinsicContentSize: CGSize {
@@ -93,33 +79,31 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     }
 
     func configure(with cat: Cat, showGalleryImage: Bool) {
-        if showGalleryImage && !cat.drawImage.isEmpty {
-            loadCatImage(from: cat.drawImage)
+        if showGalleryImage {
+            // 갤러리 모드: 실제 사진이 있으면 사진, 없으면 noImage
+            if !cat.visitLogs.isEmpty, let filePath = cat.visitLogs.first?.filePath, !filePath.isEmpty {
+                loadCatImage(from: filePath)
+            } else {
+                catImageView.image = UIImage(named: "noImage")
+            }
         } else {
-            showDefaultIcon()
+            // 기본 모드: 저장된 drawImage 사용
+            catImageView.image = UIImage(named: cat.drawImage)
         }
     }
 
-    private func loadCatImage(from path: String) {
+    private func loadCatImage(from imagePath: String) {
+        // Documents 디렉토리 경로 가져오기
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let imagePath = documentsPath.appending(path: path)
-        if let image = UIImage(contentsOfFile: imagePath.path()) {
-            catImageView.image = image
-            showGalleryImage()
+        let fullPath = documentsPath.appendingPathComponent(imagePath).path
+
+        if let localImage = UIImage(contentsOfFile: fullPath) {
+            catImageView.image = localImage
         } else {
-            showDefaultIcon()
+            catImageView.image = UIImage(named: "noImage")
         }
     }
 
-    private func showDefaultIcon() {
-        catImageView.isHidden = true
-        defaultIconView.isHidden = false
-    }
-
-    private func showGalleryImage() {
-        catImageView.isHidden = false
-        defaultIconView.isHidden = true
-    }
 }
 
 

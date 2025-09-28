@@ -22,6 +22,7 @@ final class CatRegisterViewController: BaseViewController {
     private let characterSelectedSubject = BehaviorSubject<Int>(value: 5)
     private var selectedCoordinate: CLLocationCoordinate2D?
     private var selectedAddress: String?
+    private let defaultImageSelectedSubject = PublishSubject<String>()
 
     private let characters = CatCharacter.allCases
 
@@ -338,13 +339,16 @@ extension CatRegisterViewController {
             viewDidLoad: .just(()),
             photoButtonTapped: photoButton.rx.tap.asObservable(),
             photoSelected: photoSelectedSubject.asObservable(),
+            defaultImageButtonTapped: defaultImageButton.rx.tap.asObservable(),
+            defaultImageSelected: defaultImageSelectedSubject.asObservable(),
             nameTextChanged: nameTextField.rx.text.orEmpty.asObservable(),
             genderSelected: genderSegmentedControl.rx.selectedSegmentIndex.asObservable(),
             characterSelected: characterSelectedSubject.asObservable(),
             locationButtonTapped: locationButton.rx.tap.asObservable(),
             locationSet: locationSetSubject.asObservable(),
             dateSelected: datePicker.rx.date.asObservable(),
-            registerButtonTapped: registerButton.rx.tap.asObservable())
+            registerButtonTapped: registerButton.rx.tap.asObservable()
+        )
 
         let output = viewModel.transform(input)
 
@@ -386,6 +390,12 @@ extension CatRegisterViewController {
         output.errorMessage
             .drive(with: self) { owner, message in
                 owner.showErrorAlert(message: message)
+            }
+            .disposed(by: disposeBag)
+
+        output.showDefaultImagePicker
+            .drive(with: self) { owner, _ in
+                owner.showDefaultImagePicker()
             }
             .disposed(by: disposeBag)
     }
@@ -470,6 +480,15 @@ extension CatRegisterViewController {
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
     }
+
+    private func showDefaultImagePicker() {
+        let defaultImageVC = DefaultImageViewController()
+        defaultImageVC.delegate = self
+        defaultImageVC.modalPresentationStyle = .overFullScreen
+        defaultImageVC.modalTransitionStyle = .crossDissolve
+
+        present(defaultImageVC, animated: true)
+    }
 }
 
 extension CatRegisterViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
@@ -528,5 +547,13 @@ extension CatRegisterViewController: UICollectionViewDataSource, UICollectionVie
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         characterSelectedSubject.onNext(indexPath.item)
+    }
+}
+
+extension CatRegisterViewController: DefaultImageDelegate {
+    func didSelectDefaultImage(_ image: UIImage, imageName: String) {
+        defaultImageSelectedSubject.onNext(imageName)
+        photoSelectedSubject.onNext(image)
+        displaySelectedPhoto(image)
     }
 }

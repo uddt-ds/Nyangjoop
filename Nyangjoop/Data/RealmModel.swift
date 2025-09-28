@@ -5,7 +5,7 @@
 //  Created by Lee on 9/26/25.
 //
 
-import Foundation
+import UIKit
 import RealmSwift
 
 final class Cat: Object {
@@ -45,6 +45,29 @@ final class Cat: Object {
 
     var lastVisitDate: Date? {
         return visitLogs.sorted(byKeyPath: "date", ascending: false).first?.date
+    }
+
+    func getDisplayImage(forGalleryMode: Bool) -> UIImage? {
+
+        let actualPhoto = getFirstVisitPhoto()
+        let defaultImage = !drawImage.isEmpty ? UIImage(named: drawImage) : nil
+
+        if forGalleryMode {
+            return defaultImage ?? actualPhoto
+        } else {
+            return actualPhoto ?? defaultImage
+        }
+    }
+
+    private func getFirstVisitPhoto() -> UIImage? {
+        guard let firstVisit = visitLogs.first else {
+            return nil
+        }
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let imagePath = documentsPath.appending(path: firstVisit.filePath)
+
+        let image = UIImage(contentsOfFile: imagePath.path())
+        return image
     }
 }
 

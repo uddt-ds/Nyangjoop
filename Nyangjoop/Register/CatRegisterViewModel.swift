@@ -20,6 +20,8 @@ final class CatRegisterViewModel: ViewModelProtocol {
         let viewDidLoad: Observable<Void>
         let photoButtonTapped: Observable<Void>
         let photoSelected: Observable<UIImage>
+        let defaultImageButtonTapped: Observable<Void>
+        let defaultImageSelected: Observable<String>
         let nameTextChanged: Observable<String>
         let genderSelected: Observable<Int>
         let characterSelected: Observable<Int>
@@ -34,6 +36,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
         let selectedPhoto: Driver<UIImage>
         let locationText: Driver<String>
         let showLocationPicker: Driver<Void>
+        let showDefaultImagePicker: Driver<Void>
         let isRegisterEnabled: Driver<Bool>
         let registrationCompleted: Driver<Void>
         let errorMessage: Driver<String>
@@ -44,10 +47,26 @@ final class CatRegisterViewModel: ViewModelProtocol {
     private var extractedDate: Date?
     private var manualLocation: CLLocationCoordinate2D?
     private var imagePath: String?
+    private var isDefaultImage = false
+    private var defaultImageName: String?
 
     func transform(_ input: Input) -> Output {
         let showPhotoSelection = input.photoButtonTapped
             .asDriver(onErrorJustReturn: ())
+
+        let showDefaultImagePicker = input.defaultImageButtonTapped
+            .asDriver(onErrorJustReturn: ())
+
+        input.defaultImageSelected
+            .do { [weak self] imageName in
+                guard let self else { return }
+                self.isDefaultImage = true
+                self.defaultImageName = imageName
+
+                self.selectedImage = UIImage(named: imageName)
+            }
+            .subscribe()
+            .disposed(by: disposeBag)
 
         let selectedPhoto = input.photoSelected
             .do(onNext: { [weak self] image in
@@ -140,6 +159,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
                       selectedPhoto: selectedPhoto,
                       locationText: locationText,
                       showLocationPicker: showLocationPicker,
+                      showDefaultImagePicker: showDefaultImagePicker,
                       isRegisterEnabled: isRegisterEnabled,
                       registrationCompleted: registrationCompleted,
                       errorMessage: errorMessage)
@@ -153,8 +173,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
 
-            guard let selectedImage = self.selectedImage,
-                  let imagePath = self.imagePath else {
+            guard let selectedImage = self.selectedImage else {
                 observer.onNext(.failure(CatRegisterError.missingPhoto))
                 observer.onCompleted()
                 return Disposables.create()
@@ -173,19 +192,49 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
             let finalDate = self.extractedDate ?? date
 
-            let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                          meetDate: finalDate,
-                          gender: genderIndex,
-                          character: characterIndex == 5 ? nil : characterIndex,
-                          drawImage: imagePath,
-                          lat: finalLocation.latitude,
-                          lon: finalLocation.longitude)
-
             do {
-                try self.realmManager.saveCat(cat)
+                if self.isDefaultImage {
+                    let randomImageName = DefaultCatImages.imageNames.randomElement() ?? "black1_x1"
+                    let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                                  meetDate: finalDate,
+                                  gender: genderIndex,
+                                  character: characterIndex == 5 ? nil : characterIndex,
+                                  drawImage: randomImageName,
+                                  lat: finalLocation.latitude,
+                                  lon: finalLocation.longitude)
+
+                    try self.realmManager.saveCat(cat)
+                } else {
+                    guard let imagePath = self.imagePath else {
+                        observer.onNext(.failure(CatRegisterError.missingPhoto))
+                        observer.onCompleted()
+                        return Disposables.create()
+                    }
+
+                    let randomImageName = DefaultCatImages.imageNames.randomElement() ?? "black1_x1"
+
+                    let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                                  meetDate: finalDate,
+                                  gender: genderIndex,
+                                  character: characterIndex == 5 ? nil : characterIndex,
+                                  drawImage: randomImageName,
+                                  lat: finalLocation.latitude,
+                                  lon: finalLocation.longitude)
+
+                    try self.realmManager.saveCat(cat)
+
+                    let visitLog = VisitLog(catId: cat.id,
+                                            date: finalDate,
+                                            filePath: imagePath,
+                                            lat: finalLocation.latitude,
+                                            lon: finalLocation.longitude)
+                    try self.realmManager.saveVisitLog(visitLog, to: cat)
+                }
+
                 observer.onNext(.success(()))
             } catch {
                 observer.onNext(.failure(CatRegisterError.saveError(error)))
+
             }
 
             observer.onCompleted()
