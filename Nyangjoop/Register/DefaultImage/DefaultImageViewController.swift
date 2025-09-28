@@ -58,10 +58,6 @@ final class DefaultImageViewController: BaseViewController {
 
     override func configureHierarchy() {
         super.configureHierarchy()
-
-        [collectionView, closeButton, selectButton].forEach {
-            view.addSubview($0)
-        }
     }
 
     override func configureLayout() {
@@ -98,7 +94,7 @@ final class DefaultImageViewController: BaseViewController {
         containerView.layer.shadowOpacity = 0.3
 
         view.addSubview(containerView)
-        [collectionView, selectButton].forEach { containerView.addSubview($0) }
+        [collectionView, closeButton, selectButton].forEach { containerView.addSubview($0) }
 
         containerView.snp.makeConstraints { make in
             make.center.equalToSuperview()
@@ -121,7 +117,7 @@ final class DefaultImageViewController: BaseViewController {
 
         closeButton.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(15)
-            make.trailing.equalToSuperview().offset(-15)
+            make.leading.equalToSuperview().offset(15)
             make.size.equalTo(30)
         }
     }
