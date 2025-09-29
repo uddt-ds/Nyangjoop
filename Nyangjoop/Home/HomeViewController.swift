@@ -74,39 +74,6 @@ final class HomeViewController: BaseViewController {
         return button
     }()
 
-    private lazy var bottomButtonContainer: UIView = {
-        let view = UIView()
-        [homeButton, catRegisterButton, logRecordButton].forEach { view.addSubview($0) }
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 25
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOffset = CGSize(width: 0, height: 2)
-        view.layer.shadowRadius = 4
-        view.layer.shadowOpacity = 0.15
-        return view
-    }()
-
-    private let homeButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "house.fill"), for: .normal)
-        button.tintColor = .systemBlue
-        return button
-    }()
-
-    private let catRegisterButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "plus.app"), for: .normal)
-        button.tintColor = .systemGray
-        return button
-    }()
-
-    private let logRecordButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "pencil"), for: .normal)
-        button.tintColor = .systemGray
-        return button
-    }()
-
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
@@ -121,7 +88,7 @@ final class HomeViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
 
-        [mapView, bottomButtonContainer, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton].forEach { view.addSubview($0) }
+        [mapView, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton].forEach { view.addSubview($0) }
     }
 
     override func configureLayout() {
@@ -138,7 +105,7 @@ final class HomeViewController: BaseViewController {
 
         menuToggleButton.snp.makeConstraints { make in
             make.trailing.equalToSuperview().offset(-20)
-            make.bottom.equalTo(bottomButtonContainer.snp.top).offset(-20)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-80)
             make.size.equalTo(44)
         }
 
@@ -159,37 +126,11 @@ final class HomeViewController: BaseViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.size.equalTo(44)
         }
-
-        // 하단 컨테이너
-        bottomButtonContainer.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
-            make.height.equalTo(50)
-        }
-
-        homeButton.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(30)
-            make.centerY.equalToSuperview()
-            make.size.equalTo(30)
-        }
-
-        catRegisterButton.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.centerY.equalToSuperview()
-            make.size.equalTo(30)
-        }
-
-        logRecordButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().offset(-30)
-            make.centerY.equalToSuperview()
-            make.size.equalTo(30)
-        }
     }
 
     override func configureView() {
         super.configureView()
     }
-
 
 }
 
@@ -222,9 +163,6 @@ extension HomeViewController {
             storeToggleTapped: storeToggleButton.rx.tap.asObservable(),
             galleryToggleTapped: galleryToggleButton.rx.tap.asObservable(),
             currentLocationTapped: currentLocationButton.rx.tap.asObservable(),
-            homeButtonTapped: homeButton.rx.tap.asObservable(),
-            catRegisterTapped: catRegisterButton.rx.tap.asObservable(),
-            logRecordTapped: logRecordButton.rx.tap.asObservable(),
             profileTapped: profileButton.rx.tap.asObservable(),
             catAnnotationTapped: catAnnotationTappedSubject.asObservable()
         )
@@ -274,12 +212,6 @@ extension HomeViewController {
                 owner.showCatDetailAlert(cat)
             }
             .disposed(by: disposeBag)
-
-        output.navigateToCatRegister
-            .drive(with: self) { owner, _ in
-                owner.presentCatRegisterViewController()
-            }
-            .disposed(by: disposeBag)
     }
 }
 
@@ -312,13 +244,6 @@ extension HomeViewController {
         let catAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
         mapView.removeAnnotations(catAnnotations)
         mapView.addAnnotations(catAnnotations)
-    }
-
-    private func presentCatRegisterViewController() {
-        let catRegisterVC = CatRegisterViewController()
-        let nav = UINavigationController(rootViewController: catRegisterVC)
-        nav.modalPresentationStyle = .fullScreen
-        present(nav, animated: true)
     }
 
     private func showErrorAlert(message: String) {

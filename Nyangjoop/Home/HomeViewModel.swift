@@ -23,9 +23,6 @@ final class HomeViewModel: ViewModelProtocol {
         let storeToggleTapped: Observable<Void>
         let galleryToggleTapped: Observable<Void>
         let currentLocationTapped: Observable<Void>
-        let homeButtonTapped: Observable<Void>
-        let catRegisterTapped: Observable<Void>
-        let logRecordTapped: Observable<Void>
         let profileTapped: Observable<Void>
         let catAnnotationTapped: Observable<Cat>
     }
@@ -40,8 +37,6 @@ final class HomeViewModel: ViewModelProtocol {
         let moveToCurrentLocation: Driver<CLLocation>
         let showLocationPermissionAlert: Driver<Void>
         let showCatDetail: Driver<Cat>
-        let navigateToCatRegister: Driver<Void>
-        let navigateToLogRecord: Driver<Void>
         let navigateToProfile: Driver<Void>
     }
 
@@ -119,20 +114,6 @@ final class HomeViewModel: ViewModelProtocol {
         let showCatDetail = input.catAnnotationTapped
             .asDriver(onErrorJustReturn: Cat())
 
-        input.currentLocationTapped
-            .subscribe { _ in
-                print("눌렸습니다")
-            }
-            .disposed(by: disposeBag)
-
-        input.homeButtonTapped
-            .subscribe { _ in
-                print("홈 버튼 눌림")
-            }
-            .disposed(by: disposeBag)
-
-        let navigateToCatRegister = input.catRegisterTapped.asDriver(onErrorJustReturn: ())
-        let navigateToLogRecord = input.logRecordTapped.asDriver(onErrorJustReturn: ())
         let navigateToProfile = input.profileTapped.asDriver(onErrorJustReturn: ())
 
         return Output(cats: cats,
@@ -144,8 +125,6 @@ final class HomeViewModel: ViewModelProtocol {
                       moveToCurrentLocation: moveToCurrentLocation,
                       showLocationPermissionAlert: showLocationPermissionAlert,
                       showCatDetail: showCatDetail,
-                      navigateToCatRegister: navigateToCatRegister,
-                      navigateToLogRecord: navigateToLogRecord,
                       navigateToProfile: navigateToProfile
                     )
     }
