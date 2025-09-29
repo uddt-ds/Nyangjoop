@@ -293,8 +293,11 @@ extension HomeViewController {
 }
 
 extension HomeViewController: MKMapViewDelegate {
+
     func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
-        guard let catAnnotation = annotation as? CatAnnotation else { return nil }
+        guard let catAnnotation = annotation as? CatAnnotation else {
+            return nil
+        }
         let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: CatAnnotationView.identifier, for: annotation) as! CatAnnotationView
         annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
 

@@ -77,7 +77,7 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     }
 
     private func configureHierarchy() {
-        canShowCallout = true
+        canShowCallout = false
 
         [bubbleContainerView, bubbleTailView, catImageView].forEach { addSubview($0) }
         bubbleContainerView.addSubview(bubbleImageView)
@@ -126,14 +126,16 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         bubbleTailView.layer.addSublayer(tailLayer)
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
 
-    override var intrinsicContentSize: CGSize {
         if isShowingPhoto {
-            return CGSize(width: 80, height: 65)
+            self.frame = CGRect(x: 0, y: 0, width: 80, height: 65)
         } else {
-            return CGSize(width: 50, height: 50)
+            self.frame = CGRect(x: 0, y: 0, width: 50, height: 50)
         }
 
+        self.centerOffset = CGPoint(x: 0, y: -self.frame.height / 2)
     }
 
     override func prepareForReuse() {
@@ -145,6 +147,8 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     func configure(with cat: Cat, showGalleryImage: Bool) {
         if showGalleryImage {
             // 갤러리 모드: 실제 사진이 있으면 사진, 없으면 noImage
+            isShowingPhoto = true
+            bounds = CGRect(x: 0, y: 0, width: 80, height: 80)
             if !cat.visitLogs.isEmpty, let filePath = cat.visitLogs.first?.filePath, !filePath.isEmpty {
                 showBubbleMode()
                 loadCatImage(from: filePath, into: bubbleImageView)
@@ -154,11 +158,13 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
             }
         } else {
             // 기본 모드: 저장된 drawImage 사용
+            isShowingPhoto = false
+            bounds = CGRect(x: 0, y: 0, width: 50, height: 50)
             showDirectImageMode()
             catImageView.image = UIImage(named: cat.drawImage)
         }
 
-        invalidateIntrinsicContentSize()
+        setNeedsLayout()
     }
 
     private func loadCatImage(from imagePath: String, into imageView: UIImageView) {
