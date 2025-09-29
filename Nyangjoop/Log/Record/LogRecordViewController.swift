@@ -22,6 +22,8 @@ final class LogRecordViewController: BaseViewController {
     private let locationSetSubject = PublishSubject<CLLocationCoordinate2D>()
     private var selectedCoordinate: CLLocationCoordinate2D?
 
+    private let selectedCatSubject = BehaviorSubject<Cat?>(value: nil)
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -40,6 +42,32 @@ final class LogRecordViewController: BaseViewController {
         label.textColor = .systemGray
         return label
     }()
+
+    private let catSelectionButton: UIButton = {
+         let button = UIButton(type: .system)
+         button.backgroundColor = .systemGray6
+         button.layer.cornerRadius = 12
+         button.contentHorizontalAlignment = .left
+         button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+         return button
+     }()
+
+     private let catNameLabel: UILabel = {
+         let label = UILabel()
+         label.text = "고양이를 선택하세요"
+         label.font = .systemFont(ofSize: 16)
+         label.textColor = .systemGray
+         return label
+     }()
+
+     private let catChevronIcon: UIImageView = {
+         let imageView = UIImageView()
+         imageView.image = UIImage(systemName: "chevron.right")
+         imageView.tintColor = .systemGray3
+         imageView.contentMode = .scaleAspectFit
+         return imageView
+     }()
+
 
     private let photoContainerView: UIView = {
         let view = UIView()
@@ -116,6 +144,8 @@ final class LogRecordViewController: BaseViewController {
         super.viewDidLoad()
         bind()
         setupNavigationBar()
+
+        updateCatSelectionUI()
     }
 
     override func configureHierarchy() {
@@ -124,9 +154,11 @@ final class LogRecordViewController: BaseViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
 
-        [dateLabel, photoContainerView, memoContainerView, saveButton].forEach {
+        [dateLabel, catSelectionButton, photoContainerView, memoContainerView, saveButton].forEach {
             contentView.addSubview($0)
         }
+
+        [catNameLabel, catChevronIcon].forEach { catSelectionButton.addSubview($0) }
 
         [photoImageView, photoPlaceholderLabel, photoButton].forEach {
             photoContainerView.addSubview($0)
@@ -155,8 +187,25 @@ final class LogRecordViewController: BaseViewController {
             make.height.equalTo(30)
         }
 
+        catSelectionButton.snp.makeConstraints { make in
+            make.top.equalTo(dateLabel.snp.bottom).offset(16)
+            make.leading.trailing.equalToSuperview().inset(20)
+            make.height.equalTo(56)
+        }
+
+        catNameLabel.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(16)
+            make.centerY.equalToSuperview()
+        }
+
+        catChevronIcon.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().offset(-16)
+            make.centerY.equalToSuperview()
+            make.width.height.equalTo(20)
+        }
+
         photoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(dateLabel.snp.bottom).offset(20)
+            make.top.equalTo(catSelectionButton.snp.bottom).offset(20)
             make.leading.trailing.equalToSuperview().inset(20)
             make.height.equalTo(250)
         }
@@ -218,7 +267,7 @@ extension LogRecordViewController {
     private func bind() {
         let input = LogRecordViewModel.Input(
             viewDidLoad: .just(()),
-            selectedCat: .just(selectedCat),
+            selectedCat: selectedCatSubject.asObservable(),
             photoButtonTapped: photoButton.rx.tap.asObservable(),
             photoSelected: photoSelectedSubject.asObservable(),
             memoTextChanged: memoTextView.rx.text.orEmpty.asObservable(),
@@ -254,6 +303,12 @@ extension LogRecordViewController {
         output.errorMessage
             .drive(with: self) { owner, message in
                 owner.showErrorAlert(message: message)
+            }
+            .disposed(by: disposeBag)
+
+        catSelectionButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.showCatSelectionView()
             }
             .disposed(by: disposeBag)
     }
@@ -332,6 +387,36 @@ extension LogRecordViewController {
         let alert = UIAlertController(title: "오류", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+
+    private func showCatSelectionView() {
+        let catSelectionVC = CatSelectionViewController()
+        catSelectionVC.onCatSelected = { [weak self] selectedCat in
+            guard let self else { return }
+            self.selectedCat = selectedCat
+            self.updateCatSelectionUI()
+        }
+
+        catSelectionVC.modalPresentationStyle = .pageSheet
+
+        if let sheet = catSelectionVC.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+
+        present(catSelectionVC, animated: true)
+    }
+
+    private func updateCatSelectionUI() {
+        if let cat = selectedCat {
+            catNameLabel.text = cat.name
+            catNameLabel.textColor = .label
+        } else {
+            catNameLabel.text = "고양이를 선택하세요"
+            catNameLabel.textColor = .systemGray
+        }
+
+        selectedCatSubject.onNext(selectedCat)
     }
 }
 
