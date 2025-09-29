@@ -90,7 +90,7 @@ final class LogViewController: BaseViewController {
 
         addLogButton.snp.makeConstraints { make in
             make.trailing.equalToSuperview().offset(-20)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-20)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-80)
             make.size.equalTo(56)
         }
     }

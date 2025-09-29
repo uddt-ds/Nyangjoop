@@ -62,8 +62,8 @@ final class LogRecordViewController: BaseViewController {
 
     private let photoPlaceholderLabel: UILabel = {
         let label = UILabel()
-        label.text = "사진"
-        label.font = .systemFont(ofSize: 24, weight: .medium)
+        label.text = "사진 등록하기"
+        label.font = .systemFont(ofSize: 20, weight: .medium)
         label.textColor = .systemGray3
         label.textAlignment = .center
         return label
@@ -82,11 +82,12 @@ final class LogRecordViewController: BaseViewController {
         return view
     }()
 
-    private let memoTextView: UITextView = {
+    private lazy var memoTextView: UITextView = {
         let textView = UITextView()
         textView.font = .systemFont(ofSize: 16)
         textView.textColor = .label
         textView.backgroundColor = .clear
+        textView.delegate = self
         textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         textView.isScrollEnabled = false // 자동 높이 조절
         return textView
@@ -113,6 +114,8 @@ final class LogRecordViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        bind()
+        setupNavigationBar()
     }
 
     override func configureHierarchy() {
