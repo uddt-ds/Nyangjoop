@@ -19,7 +19,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
     struct Input {
         let viewDidLoad: Observable<Void>
         let photoButtonTapped: Observable<Void>
-        let photoSelected: Observable<UIImage>
+        let photoWithMetadataSelected: Observable<PhotoWithMetadata>  // 변경
         let defaultImageButtonTapped: Observable<Void>
         let defaultImageSelected: Observable<String>
         let nameTextChanged: Observable<String>
@@ -40,9 +40,11 @@ final class CatRegisterViewModel: ViewModelProtocol {
         let isRegisterEnabled: Driver<Bool>
         let registrationCompleted: Driver<Void>
         let errorMessage: Driver<String>
+        let extractedDate: Driver<Date?>  // 추가
     }
 
     private var selectedImage: UIImage?
+    private var originalImageData: Data?  // 원본 데이터 저장
     private var extractedLocation: CLLocationCoordinate2D?
     private var extractedDate: Date?
     private var manualLocation: CLLocationCoordinate2D?
@@ -62,28 +64,51 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 guard let self else { return }
                 self.isDefaultImage = true
                 self.defaultImageName = imageName
-
                 self.selectedImage = UIImage(named: imageName)
             }
             .subscribe()
             .disposed(by: disposeBag)
 
-        let selectedPhoto = input.photoSelected
-            .do(onNext: { [weak self] image in
+        let extractedDateRelay = BehaviorRelay<Date?>(value: nil)
+
+        // 메타데이터 포함 사진 처리
+        let selectedPhoto = input.photoWithMetadataSelected
+            .do(onNext: { [weak self] photoWithMetadata in
                 guard let self else { return }
-                self.selectedImage = image
-                self.processPhotoMetadata(image)
+                
+                self.selectedImage = photoWithMetadata.image
+                self.originalImageData = photoWithMetadata.originalData
+                
+                // 메타데이터에서 추출된 정보 저장
+                if let location = photoWithMetadata.location {
+                    print("사진에서 위치 추출됨: \(location.latitude), \(location.longitude)")
+                    self.extractedLocation = location
+                } else {
+                    print("사진에 위치 정보 없음")
+                }
+                
+                if let date = photoWithMetadata.date {
+                    print("사진에서 날짜 추출됨: \(date)")
+                    self.extractedDate = date
+                    extractedDateRelay.accept(date)
+                } else {
+                    print("사진에 날짜 정보 없음")
+                }
+                
+                // 이미지 저장
+                self.saveImage()
             })
+            .map { $0.image }
             .asDriver(onErrorJustReturn: UIImage())
 
         let locationTextRelay = BehaviorRelay<String>(value: "위치 정보 가져오는 중")
 
-        input.photoSelected
-            .flatMap { [weak self] image -> Observable<String> in
+        // 사진에서 위치 추출 시 주소 가져오기
+        input.photoWithMetadataSelected
+            .flatMap { [weak self] photoWithMetadata -> Observable<String> in
                 guard let self else { return Observable.just("위치정보 없음") }
 
-                if let coordinate = self.extractLocationFromPhoto(image) {
-                    self.extractedLocation = coordinate
+                if let coordinate = photoWithMetadata.location {
                     return self.getAddressFromCoordinate(coordinate)
                 } else {
                     return Observable.just("사진에 위치 정보가 없습니다. 수동으로 설정해주세요")
@@ -92,6 +117,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
             .bind(to: locationTextRelay)
             .disposed(by: disposeBag)
 
+        // 수동 위치 설정
         input.locationSet
             .do { [weak self] coordinate in
                 guard let self else { return }
@@ -111,7 +137,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
         let isRegisterEnabled = Observable.combineLatest(
             input.nameTextChanged,
-            input.photoSelected.map { _ in true }.startWith(false),
+            input.photoWithMetadataSelected.map { _ in true }.startWith(false),
             locationTextRelay.map { !$0.contains("위치 정보를 가져오는 중") }
         )
             .map { name, hasPhoto, hasLocation in
@@ -162,7 +188,28 @@ final class CatRegisterViewModel: ViewModelProtocol {
                       showDefaultImagePicker: showDefaultImagePicker,
                       isRegisterEnabled: isRegisterEnabled,
                       registrationCompleted: registrationCompleted,
-                      errorMessage: errorMessage)
+                      errorMessage: errorMessage,
+                      extractedDate: extractedDateRelay.asDriver())
+    }
+
+    private func saveImage() {
+        if let data = originalImageData {
+            // 원본 데이터 저장 (메타데이터 포함)
+            let fileName = "cat_\(UUID().uuidString).jpg"
+            let filePath = FileManager.documentsDirectory.appendingPathComponent(fileName)
+            
+            do {
+                try data.write(to: filePath)
+                self.imagePath = fileName
+                print("이미지 저장 성공 (메타데이터 포함): \(fileName)")
+            } catch {
+                print("이미지 저장 실패: \(error)")
+            }
+        } else if let image = selectedImage {
+            // 원본 데이터가 없으면 JPEG 변환
+            imagePath = FileManager.saveImage(image)
+            print("이미지 저장 (메타데이터 없음): \(imagePath ?? "nil")")
+        }
     }
 
     private func registerCat(name: String, genderIndex: Int, characterIndex: Int, date: Date) -> Observable<Result<Void, Error>> {
@@ -190,6 +237,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
 
+            // 메타데이터에서 추출된 날짜 우선 사용
             let finalDate = self.extractedDate ?? date
 
             do {
@@ -239,68 +287,6 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
             observer.onCompleted()
             return Disposables.create()
-        }
-    }
-}
-
-extension CatRegisterViewModel {
-    private func processPhotoMetadata(_ image: UIImage) {
-        if let date = extractDateFromPhoto(image) {
-            extractedDate = date
-        }
-
-        imagePath = saveImageToDocuments(image)
-    }
-
-    private func extractLocationFromPhoto(_ image: UIImage) -> CLLocationCoordinate2D? {
-        guard let imageData = image.jpegData(compressionQuality: 1.0),
-              let source = CGImageSourceCreateWithData(imageData as CFData, nil),
-              let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String : Any],
-              let gps = metadata[kCGImagePropertyGPSDictionary as String] as? [String : Any] else {
-            return nil
-        }
-
-        guard let latitude = gps[kCGImagePropertyGPSLatitude as String] as? Double,
-              let longitude = gps[kCGImagePropertyGPSLongitude as String] as? Double,
-              let latitudeRef = gps[kCGImagePropertyGPSLatitudeRef as String] as? String,
-              let longitudeRef = gps[kCGImagePropertyGPSLongitudeRef as String] as? String else {
-            return nil
-        }
-
-        let finalLatitude = latitudeRef == "S" ? -latitude : latitude
-        let finalLongitude = longitudeRef == "W" ? -longitude : longitude
-
-        return CLLocationCoordinate2D(latitude: finalLatitude, longitude: finalLongitude)
-    }
-
-    private func extractDateFromPhoto(_ image: UIImage) -> Date? {
-        guard let imageData = image.jpegData(compressionQuality: 1.0),
-              let source = CGImageSourceCreateWithData(imageData as CFData, nil),
-              let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String : Any],
-              let exif = metadata[kCGImagePropertyExifDictionary as String] as? [String : Any],
-              let dateString = exif[kCGImagePropertyExifDateTimeOriginal as String] as? String else {
-            return nil
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        return formatter.date(from: dateString)
-    }
-
-    private func saveImageToDocuments(_ image: UIImage) -> String? {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return nil }
-        let fileName = "cat_\(UUID().uuidString).jpg"
-        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let filePath = documentPath.appending(path: fileName)
-
-        do {
-            try imageData.write(to: filePath)
-            return fileName
-        } catch {
-            print("이미지 저장 실패: \(error)")
-
-
-            return nil
         }
     }
 

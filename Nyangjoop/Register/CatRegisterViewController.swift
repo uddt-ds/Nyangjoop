@@ -16,8 +16,11 @@ final class CatRegisterViewController: BaseViewController {
 
     private var disposeBag = DisposeBag()
     private let viewModel = CatRegisterViewModel()
+    
+    // PhotoPickerManager 사용
+    private var photoPickerManager: PhotoPickerManager!
+    private let photoWithMetadataSubject = PublishSubject<PhotoWithMetadata>()
 
-    private let photoSelectedSubject = PublishSubject<UIImage>()
     private let locationSetSubject = PublishSubject<CLLocationCoordinate2D>()
     private let characterSelectedSubject = BehaviorSubject<Int>(value: 5)
     private var selectedCoordinate: CLLocationCoordinate2D?
@@ -182,6 +185,7 @@ final class CatRegisterViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationBar()
+        setupPhotoPickerManager()
         bind()
     }
 
@@ -300,6 +304,18 @@ final class CatRegisterViewController: BaseViewController {
         title = "고양이 등록"
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonTapped))
     }
+    
+    private func setupPhotoPickerManager() {
+        photoPickerManager = PhotoPickerManager(presentingViewController: self)
+        
+        // PhotoPickerManager에서 메타데이터 포함 사진 받기
+        photoPickerManager.selectedPhoto
+            .subscribe(onNext: { [weak self] photoWithMetadata in
+                guard let self = self else { return }
+                self.photoWithMetadataSubject.onNext(photoWithMetadata)
+            })
+            .disposed(by: disposeBag)
+    }
 
     @objc private func cancelButtonTapped() {
         dismiss(animated: true)
@@ -314,9 +330,8 @@ final class CatRegisterViewController: BaseViewController {
             )
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-            // 그룹 너비를 estimated로 변경
             let groupSize = NSCollectionLayoutSize(
-                widthDimension: .estimated(80),  // ← 변경
+                widthDimension: .estimated(80),
                 heightDimension: .absolute(32)
             )
             let group = NSCollectionLayoutGroup.horizontal(
@@ -325,7 +340,7 @@ final class CatRegisterViewController: BaseViewController {
             )
 
             let section = NSCollectionLayoutSection(group: group)
-            section.interGroupSpacing = 8  // 그룹 간 간격
+            section.interGroupSpacing = 8
             section.orthogonalScrollingBehavior = .continuous
 
             return section
@@ -338,7 +353,7 @@ extension CatRegisterViewController {
         let input = CatRegisterViewModel.Input(
             viewDidLoad: .just(()),
             photoButtonTapped: photoButton.rx.tap.asObservable(),
-            photoSelected: photoSelectedSubject.asObservable(),
+            photoWithMetadataSelected: photoWithMetadataSubject.asObservable(),  // 변경
             defaultImageButtonTapped: defaultImageButton.rx.tap.asObservable(),
             defaultImageSelected: defaultImageSelectedSubject.asObservable(),
             nameTextChanged: nameTextField.rx.text.orEmpty.asObservable(),
@@ -354,14 +369,23 @@ extension CatRegisterViewController {
 
         output.showPhotoSelection
             .drive(with: self) { owner, _ in
-                print("사진 선택버튼 클릭")
-                owner.showPhotoSelectionActionSheet()
+                owner.photoPickerManager.showPhotoSelectionActionSheet()
             }
             .disposed(by: disposeBag)
 
         output.selectedPhoto
             .drive(with: self) { owner, image in
                 owner.displaySelectedPhoto(image)
+            }
+            .disposed(by: disposeBag)
+        
+        // 메타데이터에서 추출된 날짜가 있으면 DatePicker에 설정
+        output.extractedDate
+            .drive(with: self) { owner, date in
+                if let date = date {
+                    owner.datePicker.date = date
+                    print("DatePicker 날짜 설정: \(date)")
+                }
             }
             .disposed(by: disposeBag)
 
@@ -403,44 +427,6 @@ extension CatRegisterViewController {
 }
 
 extension CatRegisterViewController {
-    private func showPhotoSelectionActionSheet() {
-        let alert = UIAlertController(title: "사진 선택", message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "카메라", style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.presentCamera()
-        })
-        alert.addAction(UIAlertAction(title: "사진 앨범", style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.presentPhotoLibrary()
-        })
-
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        present(alert, animated: true)
-    }
-
-    private func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            print("카메라를 사용할 수 없습니다")
-            return
-        }
-
-        let picker = UIImagePickerController()
-        picker.delegate = self
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        present(picker, animated: true)
-    }
-
-    private func presentPhotoLibrary() {
-        var configuration = PHPickerConfiguration()
-        configuration.filter = .images
-        configuration.selectionLimit = 1
-
-        let picker = PHPickerViewController(configuration: configuration)
-        picker.delegate = self
-        present(picker, animated: true)
-    }
-
     private func displaySelectedPhoto(_ image: UIImage) {
         photoImageView.image = image
         photoImageView.isHidden = false
@@ -461,24 +447,9 @@ extension CatRegisterViewController {
     }
 
     private func showRegistrationSuccessAlert() {
-        let alert = UIAlertController(
-            title: "등록 완료",
-            message: "고양이가 성공적으로 등록되었습니다!",
-            preferredStyle: .alert
-        )
-
-        alert.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.dismiss(animated: true)
-        })
-
-        present(alert, animated: true)
-    }
-
-    private func showErrorAlert(message: String) {
-        let alert = UIAlertController(title: "오류", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+        showSuccessAlert(message: "고양이가 성공적으로 등록되었습니다!") { [weak self] in
+            self?.dismiss(animated: true)
+        }
     }
 
     private func showDefaultImagePicker() {
@@ -491,37 +462,6 @@ extension CatRegisterViewController {
     }
 }
 
-extension CatRegisterViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-
-        if let image = info[.originalImage] as? UIImage {
-            photoSelectedSubject.onNext(image)
-        }
-    }
-
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true)
-    }
-}
-
-extension CatRegisterViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-
-        guard let result = results.first else { return }
-
-        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] (object, error) in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                if let image = object as? UIImage {
-                    self.photoSelectedSubject.onNext(image)
-                }
-            }
-        }
-    }
-}
-
 extension CatRegisterViewController: LocationPickerDelegate {
     func didSelectLocation(coordinate: CLLocationCoordinate2D, address: String) {
         selectedCoordinate = coordinate
@@ -531,7 +471,6 @@ extension CatRegisterViewController: LocationPickerDelegate {
         locationSetSubject.onNext(coordinate)
     }
 }
-
 
 extension CatRegisterViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -553,7 +492,15 @@ extension CatRegisterViewController: UICollectionViewDataSource, UICollectionVie
 extension CatRegisterViewController: DefaultImageDelegate {
     func didSelectDefaultImage(_ image: UIImage, imageName: String) {
         defaultImageSelectedSubject.onNext(imageName)
-        photoSelectedSubject.onNext(image)
+        
+        // 기본 이미지도 PhotoWithMetadata로 변환
+        let photoWithMetadata = PhotoWithMetadata(
+            image: image,
+            location: nil,
+            date: nil,
+            originalData: nil
+        )
+        photoWithMetadataSubject.onNext(photoWithMetadata)
         displaySelectedPhoto(image)
     }
 }
