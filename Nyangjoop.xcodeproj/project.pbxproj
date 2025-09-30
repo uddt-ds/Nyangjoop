@@ -12,7 +12,23 @@
 		9BCB01EE2E868968005493A9 /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB01ED2E868968005493A9 /* RxRelay */; };
 		9BCB01F02E868968005493A9 /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB01EF2E868968005493A9 /* RxSwift */; };
 		9BCB02332E86AFBD005493A9 /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB02322E86AFBD005493A9 /* RealmSwift */; };
+		9BCB02B72E8A8E52005493A9 /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB02322E86AFBD005493A9 /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB03672E8BAF25005493A9 /* Alamofire */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9BCB02B82E8A8E52005493A9 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				9BCB02B72E8A8E52005493A9 /* RealmSwift in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nyangjoop.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -47,6 +63,7 @@
 				9BCB01EE2E868968005493A9 /* RxRelay in Frameworks */,
 				9BCB01EC2E868968005493A9 /* RxCocoa in Frameworks */,
 				9BCB01F02E868968005493A9 /* RxSwift in Frameworks */,
+				9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */,
 				9BCB02332E86AFBD005493A9 /* RealmSwift in Frameworks */,
 				9BCB01E92E868953005493A9 /* SnapKit in Frameworks */,
 			);
@@ -81,6 +98,7 @@
 				9BCBFD8E2E84C4A3005493A9 /* Sources */,
 				9BCBFD8F2E84C4A3005493A9 /* Frameworks */,
 				9BCBFD902E84C4A3005493A9 /* Resources */,
+				9BCB02B82E8A8E52005493A9 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -96,6 +114,7 @@
 				9BCB01ED2E868968005493A9 /* RxRelay */,
 				9BCB01EF2E868968005493A9 /* RxSwift */,
 				9BCB02322E86AFBD005493A9 /* RealmSwift */,
+				9BCB03672E8BAF25005493A9 /* Alamofire */,
 			);
 			productName = Nyangjoop;
 			productReference = 9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */;
@@ -129,6 +148,7 @@
 				9BCB01E72E868953005493A9 /* XCRemoteSwiftPackageReference "SnapKit" */,
 				9BCB01EA2E868968005493A9 /* XCRemoteSwiftPackageReference "RxSwift" */,
 				9BCB02312E86AFBD005493A9 /* XCRemoteSwiftPackageReference "realm-swift" */,
+				9BCB03662E8BAF25005493A9 /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BCBFD932E84C4A3005493A9 /* Products */;
@@ -174,7 +194,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "냥줍";
+				INFOPLIST_KEY_NSCameraUsageDescription = "고양이 사진을 찍고 등록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
@@ -212,7 +234,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "냥줍";
+				INFOPLIST_KEY_NSCameraUsageDescription = "고양이 사진을 찍고 등록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
@@ -408,6 +432,14 @@
 				version = 20.0.3;
 			};
 		};
+		9BCB03662E8BAF25005493A9 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -435,6 +467,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9BCB02312E86AFBD005493A9 /* XCRemoteSwiftPackageReference "realm-swift" */;
 			productName = RealmSwift;
+		};
+		9BCB03672E8BAF25005493A9 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BCB03662E8BAF25005493A9 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
