@@ -17,9 +17,12 @@ final class LocationManager: NSObject {
     private let currentLocationRelay = BehaviorRelay<CLLocation?>(value: nil)
     private let authorizationStatusRelay = BehaviorRelay<CLAuthorizationStatus>(value: .notDetermined)
 
+    private var isUpdatingLocation = false
+
     private override init() {
         super.init()
         setupLocationManager()
+
     }
 
     var currentLocation: Observable<CLLocation?> {
@@ -35,90 +38,130 @@ final class LocationManager: NSObject {
         return status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
+    var isPermissionNotDetermined: Bool {
+        return authorizationStatusRelay.value == .notDetermined
+    }
+
     private func setupLocationManager() {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 10
         authorizationStatusRelay.accept(locationManager.authorizationStatus)
 
-        currentLocationRelay.accept(AppLocationConfig.defaultLocation)
-    }
-
-    // 권한 요청과 위치 요청을 하나로 통합
-    func getCurrentLocation() -> Single<CLLocation> {
-        return Single.create { [weak self] observer in
-            guard let self = self else {
-                observer(.failure(LocationError.unknown))
-                return Disposables.create()
-            }
-
-            // 이미 권한이 있으면 바로 위치 요청
-            if self.isLocationEnabled {
-                let disposable = self.requestLocationDirectly()
-                    .subscribe(
-                        onSuccess: { location in
-                            observer(.success(location))
-                        },
-                        onFailure: { error in
-                            observer(.failure(error))
-                        }
-                    )
-                return disposable
-            }
-
-            // 권한이 없으면 권한 요청 후 위치 요청
-            let disposable = self.authorizationStatus
-                .skip(1) // 현재 상태 건너뛰기
-                .take(1) // 첫 번째 변경만 감지
-                .flatMap { status -> Observable<CLLocation> in
-                    if status == .authorizedWhenInUse || status == .authorizedAlways {
-                        return self.requestLocationDirectly().asObservable()
-                    } else {
-                        return Observable.error(LocationError.permissionDenied)
-                    }
-                }
-                .subscribe(
-                    onNext: { location in
-                        observer(.success(location))
-                    },
-                    onError: { error in
-                        observer(.failure(error))
-                    }
-                )
-
-            // 권한 요청 시작
-            self.locationManager.requestWhenInUseAuthorization()
-            return disposable
+        if isLocationEnabled {
+            startUpdatingLocation()
         }
     }
 
-    // 직접적인 위치 요청 (권한이 있을 때만 호출)
-    private func requestLocationDirectly() -> Single<CLLocation> {
-        return Single.create { [weak self] observer in
+    private func startUpdatingLocation() {
+        guard !isUpdatingLocation else { return }
+        print("위치 업데이트 시작")
+        isUpdatingLocation = true
+        locationManager.startUpdatingLocation()
+    }
+
+    private func stopUpdatingLocation() {
+        guard isUpdatingLocation else { return }
+        print("위치 업데이트 중지")
+        isUpdatingLocation = false
+        locationManager.stopUpdatingLocation()
+    }
+
+    func getCurrentLocation(requestPermissionIfNeeded: Bool = false) -> Single<CLLocation> {
+        return Single<CLLocation>.create { [weak self] observer in
             guard let self = self else {
                 observer(.failure(LocationError.unknown))
                 return Disposables.create()
             }
 
-            // 최근 위치가 있으면 재사용 (30초 이내)
-            if let recent = self.currentLocationRelay.value,
-               abs(recent.timestamp.timeIntervalSinceNow) < 30 {
-                observer(.success(recent))
+            let status = self.locationManager.authorizationStatus
+
+            switch status {
+            case .authorizedAlways, .authorizedWhenInUse:
+                // 권한이 있어도 시스템 위치 서비스가 꺼져있을 수 있음
+                // 하지만 requestLocation 실패 시 didFailWithError에서 처리됨
+                self.locationManager.requestLocation()
+                let disposable = self.currentLocation
+                    .compactMap { $0 }
+                    .take(1)
+                    .subscribe(onNext: { location in
+                        observer(.success(location))
+                    })
+                return disposable
+
+            case .denied, .restricted:
+                observer(.failure(LocationError.permissionDenied))
+                return Disposables.create()
+
+            case .notDetermined:
+                guard requestPermissionIfNeeded else {
+                    observer(.failure(LocationError.permissionNotDetermined))
+                    return Disposables.create()
+                }
+
+                let disp = self.authorizationStatus
+                    .skip(1)
+                    .take(1)
+                    .subscribe(onNext: { newStatus in
+                        if newStatus == .authorizedAlways || newStatus == .authorizedWhenInUse {
+                            self.locationManager.requestLocation()
+                            _ = self.currentLocation
+                                .compactMap { $0 }
+                                .take(1)
+                                .subscribe(onNext: { location in
+                                    observer(.success(location))
+                                })
+                        } else {
+                            observer(.failure(LocationError.permissionDenied))
+                        }
+                    })
+
+                self.locationManager.requestWhenInUseAuthorization()
+                return disp
+
+            @unknown default:
+                observer(.failure(LocationError.unknown))
+                return Disposables.create()
+            }
+        }
+    }
+
+    private func waitForLocation(timeout: Int) -> Single<CLLocation> {
+        return Single<CLLocation>.create { [weak self] observer -> Disposable in
+            guard let self = self else {
+                observer(.failure(LocationError.unknown))
                 return Disposables.create()
             }
 
-            // 새로운 위치 요청
             let disposable = self.currentLocation
                 .compactMap { $0 }
+                .filter { [weak self] location in
+                    guard let self = self else { return false }
+                    return self.isRealLocation(location)
+                }
                 .take(1)
-                .timeout(.seconds(10), scheduler: MainScheduler.instance)
+                .timeout(.seconds(timeout), scheduler: MainScheduler.instance)
                 .subscribe(
-                    onNext: { observer(.success($0)) },
-                    onError: { _ in observer(.failure(LocationError.timeout)) }
+                    onNext: { location in
+                        print("위치 받음: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                        observer(.success(location))
+                    },
+                    onError: { _ in
+                        print("위치 타임아웃")
+                        observer(.failure(LocationError.timeout))
+                    }
                 )
 
-            self.locationManager.requestLocation()
             return disposable
         }
+    }
+
+    private func isRealLocation(_ location: CLLocation) -> Bool {
+        let defaultLat = AppLocationConfig.defaultCoordinate.latitude
+        let defaultLon = AppLocationConfig.defaultCoordinate.longitude
+
+        return !(abs(location.coordinate.latitude - defaultLat) < 0.0001 &&
+                 abs(location.coordinate.longitude - defaultLon) < 0.0001)
     }
 
     func openLocationSettings() {
@@ -127,8 +170,9 @@ final class LocationManager: NSObject {
     }
 }
 
-enum LocationError: Error, LocalizedError {
+enum LocationError: Error, LocalizedError, Equatable {
     case permissionDenied
+    case permissionNotDetermined
     case locationUnavailable
     case timeout
     case unknown
@@ -137,10 +181,12 @@ enum LocationError: Error, LocalizedError {
         switch self {
         case .permissionDenied:
             return "위치 권한이 거부되었습니다. 설정에서 위치 권한을 허용해주세요."
+        case .permissionNotDetermined:
+            return "위치 권한이 필요합니다. 지도 화면에서 현위치 버튼을 먼저 눌러주세요."
         case .locationUnavailable:
             return "현재 위치를 찾을 수 없습니다."
         case .timeout:
-            return "위치 검색 시간이 초과되었습니다."
+            return "위치를 찾는 중입니다. 잠시만 기다려주세요."
         case .unknown:
             return "알 수 없는 오류가 발생했습니다."
         }
@@ -150,14 +196,35 @@ enum LocationError: Error, LocalizedError {
 extension LocationManager: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
+        print(" 위치 업데이트: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         currentLocationRelay.accept(location)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location error: \(error)")
+        print("Location error: \(error.localizedDescription)")
+
+        if let clError = error as? CLError {
+            switch clError.code {
+            case .denied:
+                print("위치 서비스 거부됨")
+                stopUpdatingLocation()
+            case .locationUnknown:
+                print("위치를 찾을 수 없음 (GPS 신호 약함)")
+            default:
+                print("기타 위치 오류: \(clError.code)")
+            }
+        }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatusRelay.accept(manager.authorizationStatus)
+        let newStatus = manager.authorizationStatus
+        print("권한 상태 변경: \(newStatus.rawValue)")
+        authorizationStatusRelay.accept(newStatus)
+
+        if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
+            startUpdatingLocation()
+        } else if newStatus == .denied || newStatus == .restricted {
+            stopUpdatingLocation()
+        }
     }
 }
