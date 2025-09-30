@@ -37,6 +37,7 @@ final class HomeViewModel: ViewModelProtocol {
         let showLocationPermissionAlert: Driver<Void>
         let showCatDetail: Driver<Cat>
         let storeData: Driver<[MarketModel]>
+        let isShowingStores: Driver<Bool>
     }
 
     func transform(_ input: Input) -> Output {
@@ -112,16 +113,19 @@ final class HomeViewModel: ViewModelProtocol {
         let showCatDetail = input.catAnnotationTapped
             .asDriver(onErrorJustReturn: Cat())
 
+        let isShowingStores = input.storeToggleTapped
+            .scan(false) { currentState, _ in !currentState }
+            .startWith(false)
+            .share()
+
         let storeData = input.storeToggleTapped
-            .withLatestFrom(currentLocationResult)
-            .compactMap { result -> CLLocationCoordinate2D? in
-                let coord = try? result.get().coordinate
-                print(coord)
-                return coord
+            .withLatestFrom(Observable.combineLatest(isShowingStores, currentLocationResult))
+            .filter { isShowing, _ in isShowing }
+            .compactMap{ _, result -> CLLocationCoordinate2D? in
+                return try? result.get().coordinate
             }
             .flatMapLatest { [weak self] coordinate -> Single<[MarketModel]> in
                 guard let self else { return .just([]) }
-                print("API호출 시작")
 
                 return self.networkManager.fetchData(
                     lat: coordinate.latitude,
@@ -130,15 +134,15 @@ final class HomeViewModel: ViewModelProtocol {
                 .map { result in
                     switch result {
                     case .success(let markets):
-                        print("마켓 데이터: \(markets.count)개")
                         return markets
                     case .failure(let error):
-                        print("가게 검색 실패: \(error.message)")
+                        print("검색 실패: \(error.message)")
                         return []
                     }
                 }
             }
             .asDriver(onErrorJustReturn: [])
+
 
         return Output(cats: cats,
                       isMenuExpanded: isMenuExpanded,
@@ -147,7 +151,8 @@ final class HomeViewModel: ViewModelProtocol {
                       moveToCurrentLocation: moveToCurrentLocation,
                       showLocationPermissionAlert: showLocationPermissionAlert,
                       showCatDetail: showCatDetail,
-                      storeData: storeData
+                      storeData: storeData,
+                      isShowingStores: isShowingStores.asDriver(onErrorJustReturn: false)
                     )
     }
 }

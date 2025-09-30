@@ -27,6 +27,7 @@ final class HomeViewController: BaseViewController {
     private var marketAnnotations: [MarketAnnotation] = []
     private var currentCats: [Cat] = []
     private var isShowingGalleryMarkers = false
+    private var isShowingStores = false
 
     private let mapView: MKMapView = {
         let mapView = MKMapView()
@@ -74,6 +75,8 @@ final class HomeViewController: BaseViewController {
         button.tintColor = .systemBlue
         return button
     }()
+
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -127,6 +130,8 @@ final class HomeViewController: BaseViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.size.equalTo(44)
         }
+
+
     }
 
     override func configureView() {
@@ -140,6 +145,7 @@ extension HomeViewController {
         mapView.delegate = self
         mapView.setToDefaultLoction()
         mapView.register(CatAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatAnnotationView.identifier)
+        mapView.register(MarketAnnotationView.self, forAnnotationViewWithReuseIdentifier: MarketAnnotationView.identifier)
 
         let standardConfig = MKStandardMapConfiguration()
         standardConfig.pointOfInterestFilter = MKPointOfInterestFilter(including: [
@@ -169,7 +175,8 @@ extension HomeViewController {
             galleryToggleTapped: galleryToggleButton.rx.tap.asObservable(),
             currentLocationTapped: currentLocationButton.rx.tap.asObservable(),
             profileTapped: profileButton.rx.tap.asObservable(),
-            catAnnotationTapped: catAnnotationTappedSubject.asObservable()
+            catAnnotationTapped: catAnnotationTappedSubject.asObservable(),
+
         )
 
         let output = viewModel.transform(input)
@@ -223,6 +230,15 @@ extension HomeViewController {
                 owner.updateMarketMarkers(markets)
             }
             .disposed(by: disposeBag)
+
+        output.isShowingStores
+            .drive(with: self) { owner, isShowing in
+                owner.isShowingStores = isShowing
+                if !isShowing {
+                    owner.clearMarketMarkers()
+                }
+            }
+            .disposed(by: disposeBag)
     }
 }
 
@@ -269,13 +285,16 @@ extension HomeViewController {
     }
 
     private func updateMarketMarkers(_ markets: [MarketModel]) {
-        print("호출: \(markets.count)개")
         mapView.removeAnnotations(marketAnnotations)
         marketAnnotations.removeAll()
 
         marketAnnotations = markets.map{ MarketAnnotation(market: $0) }
-        print("어노테이션 생성: \(marketAnnotations.count)개")
         mapView.addAnnotations(marketAnnotations)
+    }
+
+    private func clearMarketMarkers() {
+        mapView.removeAnnotations(marketAnnotations)
+        marketAnnotations.removeAll()
     }
 
     private func showCatDetailAlert(_ cat: Cat) {
@@ -298,7 +317,6 @@ extension HomeViewController {
 
          present(alert, animated: true)
      }
-
 }
 
 extension HomeViewController: MKMapViewDelegate {
@@ -320,20 +338,12 @@ extension HomeViewController: MKMapViewDelegate {
         }
 
         // 마켓 마커
-        if let marketAnnotation = annotation as? MarketAnnotation {
-            let identifier = "MarketPin"
-            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
-
-            if annotationView == nil {
-                annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
-                annotationView?.canShowCallout = true
-            } else {
-                annotationView?.annotation = annotation
-            }
-
-            annotationView?.markerTintColor = .systemOrange
-            annotationView?.glyphImage = UIImage(systemName: "cart.fill")
-
+        if annotation is MarketAnnotation {
+            let annotationView = mapView.dequeueReusableAnnotationView(
+                withIdentifier: MarketAnnotationView.identifier,
+                for: annotation
+            ) as! MarketAnnotationView
+            
             return annotationView
         }
 

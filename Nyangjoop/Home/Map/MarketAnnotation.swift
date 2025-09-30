@@ -30,6 +30,7 @@ final class MarketAnnotation: NSObject, MKAnnotation {
 }
 
 final class MarketAnnotationView: MKAnnotationView, IdentifierProtocol {
+    
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         configure()
@@ -37,17 +38,19 @@ final class MarketAnnotationView: MKAnnotationView, IdentifierProtocol {
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
+        configure()
     }
 
     private func configure() {
         canShowCallout = true
+        frame = CGRect(x: 0, y: 0, width: 50, height: 50)
 
-        let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-        imageView.image = UIImage(systemName: "fish.circle.fill")
+        // 생선 이미지
+        let imageView = UIImageView(frame: bounds)
+        let config = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium)
+        imageView.image = UIImage(systemName: "fish.fill", withConfiguration: config)
         imageView.tintColor = .retroRed
         imageView.contentMode = .scaleAspectFit
-
         addSubview(imageView)
-        frame = imageView.frame
     }
 }
