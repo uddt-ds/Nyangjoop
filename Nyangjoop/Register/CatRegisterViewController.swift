@@ -29,12 +29,54 @@ final class CatRegisterViewController: BaseViewController {
 
     private let characters = CatCharacter.allCases
 
+    private let scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.alwaysBounceVertical = true
+        return scrollView
+    }()
+    
+    private let contentView = UIView()
+
+    // 이미지 선택 섹션 헤더
+    private let imageSectionLabel: UILabel = {
+        let label = UILabel()
+        label.text = "이미지 등록 *"
+        label.font = .boldSystemFont(ofSize: 18)
+        label.textColor = .label
+        return label
+    }()
+    
+    private let imageSectionDescLabel: UILabel = {
+        let label = UILabel()
+        label.text = "실제 사진과 지도 표시용 아이콘을 선택해주세요"
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .systemGray
+        label.numberOfLines = 0
+        return label
+    }()
+    
+    // 이미지 선택 컨테이너 (좌우 분할)
+    private let imageSelectionContainerView = UIView()
+
+    // 좌측: 실제 사진
+    private let photoSectionView = UIView()
+    
+    private let photoLabel: UILabel = {
+        let label = UILabel()
+        label.text = "실제 사진"
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .systemBlue
+        label.textAlignment = .center
+        return label
+    }()
+
     private let photoContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemGray6
         view.layer.cornerRadius = 12
         view.layer.borderWidth = 2
-        view.layer.borderColor = UIColor.systemGray4.cgColor
+        view.layer.borderColor = UIColor.systemBlue.cgColor
         return view
     }()
 
@@ -44,36 +86,87 @@ final class CatRegisterViewController: BaseViewController {
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
         imageView.backgroundColor = .systemGray5
+        imageView.isHidden = true
+        return imageView
+    }()
+
+    private let photoPlaceholderStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 8
+        return stack
+    }()
+    
+    private let photoIconView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "camera.fill")
+        imageView.tintColor = .systemBlue
+        imageView.contentMode = .scaleAspectFit
         return imageView
     }()
 
     private let photoPlaceholderLabel: UILabel = {
         let label = UILabel()
-        label.text = "사진을 선택해주세요"
-        label.textColor = .systemGray2
-        label.font = .systemFont(ofSize: 16)
+        label.text = "사진 선택"
+        label.textColor = .systemBlue
+        label.font = .systemFont(ofSize: 12, weight: .medium)
         label.textAlignment = .center
         return label
     }()
 
-    private let photoButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("사진 선택", for: .normal)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 8
-        return button
+    // 우측: 기본 이미지
+    private let defaultImageSectionView = UIView()
+    
+    private let defaultImageLabel: UILabel = {
+        let label = UILabel()
+        label.text = "지도 아이콘"
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .systemOrange
+        label.textAlignment = .center
+        return label
     }()
 
-    private let defaultImageButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("기본 이미지 사용", for: .normal)
-        button.backgroundColor = .systemGray5
-        button.setTitleColor(.label, for: .normal)
-        button.layer.cornerRadius = 8
-        button.layer.borderWidth = 1
-        button.layer.borderColor = UIColor.systemGray4.cgColor
-        return button
+    private let defaultImageContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemGray6
+        view.layer.cornerRadius = 12
+        view.layer.borderWidth = 2
+        view.layer.borderColor = UIColor.systemOrange.cgColor
+        return view
+    }()
+
+    private let defaultImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.backgroundColor = .clear
+        imageView.isHidden = true
+        return imageView
+    }()
+
+    private let defaultImagePlaceholderStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 8
+        return stack
+    }()
+    
+    private let defaultImageIconView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "cat.fill")
+        imageView.tintColor = .systemOrange
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
+    private let defaultImagePlaceholderLabel: UILabel = {
+        let label = UILabel()
+        label.text = "아이콘 선택"
+        label.textColor = .systemOrange
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.textAlignment = .center
+        return label
     }()
 
     private let nameHeaderLabel: UILabel = {
@@ -132,7 +225,7 @@ final class CatRegisterViewController: BaseViewController {
 
     private let locationHeaderLabel: UILabel = {
         let label = UILabel()
-        label.text = "발견 장소"
+        label.text = "발견 장소 *"
         label.font = .boldSystemFont(ofSize: 16)
         label.textColor = .label
         return label
@@ -186,54 +279,142 @@ final class CatRegisterViewController: BaseViewController {
         super.viewDidLoad()
         setupNavigationBar()
         setupPhotoPickerManager()
+        setupGestures()
         bind()
     }
 
     override func configureHierarchy() {
-        [photoContainerView, defaultImageButton, nameHeaderLabel, nameTextField,
-                 genderHeaderLabel, genderSegmentedControl,
-                 characterHeaderLabel, characterBtnCollectionView,
-                 locationHeaderLabel, locationLabel, locationButton,
-                 dateHeaderLabel, datePicker, registerButton].forEach {
-                    view.addSubview($0)
-                }
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        
+        [imageSectionLabel, imageSectionDescLabel, imageSelectionContainerView,
+         nameHeaderLabel, nameTextField,
+         genderHeaderLabel, genderSegmentedControl,
+         characterHeaderLabel, characterBtnCollectionView,
+         locationHeaderLabel, locationLabel, locationButton,
+         dateHeaderLabel, datePicker, registerButton].forEach {
+            contentView.addSubview($0)
+        }
 
-        [photoImageView, photoPlaceholderLabel, photoButton].forEach { photoContainerView.addSubview($0)
+        // 좌우 분할 컨테이너
+        [photoSectionView, defaultImageSectionView].forEach {
+            imageSelectionContainerView.addSubview($0)
+        }
+        
+        // 좌측: 실제 사진
+        [photoLabel, photoContainerView].forEach {
+            photoSectionView.addSubview($0)
+        }
+        
+        [photoImageView, photoPlaceholderStackView].forEach { 
+            photoContainerView.addSubview($0)
+        }
+        
+        [photoIconView, photoPlaceholderLabel].forEach {
+            photoPlaceholderStackView.addArrangedSubview($0)
+        }
+
+        // 우측: 기본 이미지
+        [defaultImageLabel, defaultImageContainerView].forEach {
+            defaultImageSectionView.addSubview($0)
+        }
+        
+        [defaultImageView, defaultImagePlaceholderStackView].forEach {
+            defaultImageContainerView.addSubview($0)
+        }
+        
+        [defaultImageIconView, defaultImagePlaceholderLabel].forEach {
+            defaultImagePlaceholderStackView.addArrangedSubview($0)
         }
     }
 
     override func configureLayout() {
         super.configureLayout()
 
-        photoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(20)
+        scrollView.snp.makeConstraints { make in
+            make.edges.equalTo(view.safeAreaLayoutGuide)
+        }
+        
+        contentView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+            make.width.equalToSuperview()
+        }
+
+        imageSectionLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(20)
+            make.leading.equalToSuperview().offset(20)
+        }
+        
+        imageSectionDescLabel.snp.makeConstraints { make in
+            make.top.equalTo(imageSectionLabel.snp.bottom).offset(4)
             make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(160)
+        }
+
+        imageSelectionContainerView.snp.makeConstraints { make in
+            make.top.equalTo(imageSectionDescLabel.snp.bottom).offset(12)
+            make.leading.trailing.equalToSuperview().inset(20)
+            make.height.equalTo(180)
+        }
+        
+        // 좌측: 실제 사진
+        photoSectionView.snp.makeConstraints { make in
+            make.leading.top.bottom.equalToSuperview()
+            make.trailing.equalTo(imageSelectionContainerView.snp.centerX).offset(-6)
+        }
+        
+        photoLabel.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview()
+            make.height.equalTo(20)
+        }
+        
+        photoContainerView.snp.makeConstraints { make in
+            make.top.equalTo(photoLabel.snp.bottom).offset(4)
+            make.leading.trailing.bottom.equalToSuperview()
         }
 
         photoImageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview().inset(8)
+        }
+
+        photoPlaceholderStackView.snp.makeConstraints { make in
             make.center.equalToSuperview()
-            make.size.equalTo(120)
+        }
+        
+        photoIconView.snp.makeConstraints { make in
+            make.size.equalTo(40)
+        }
+        
+        // 우측: 기본 이미지
+        defaultImageSectionView.snp.makeConstraints { make in
+            make.leading.equalTo(imageSelectionContainerView.snp.centerX).offset(6)
+            make.trailing.top.bottom.equalToSuperview()
+        }
+        
+        defaultImageLabel.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview()
+            make.height.equalTo(20)
         }
 
-        photoPlaceholderLabel.snp.makeConstraints { make in
+        defaultImageContainerView.snp.makeConstraints { make in
+            make.top.equalTo(defaultImageLabel.snp.bottom).offset(4)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
+
+        defaultImageView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.size.equalTo(80)
+        }
+
+        defaultImagePlaceholderStackView.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
-
-        photoButton.snp.makeConstraints { make in
-            make.bottom.trailing.equalToSuperview().inset(12)
-            make.height.equalTo(32)
-            make.width.equalTo(80)
-        }
-
-        defaultImageButton.snp.makeConstraints { make in
-            make.top.equalTo(photoContainerView.snp.bottom).offset(12)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(40)
+        
+        defaultImageIconView.snp.makeConstraints { make in
+            make.size.equalTo(40)
         }
 
         nameHeaderLabel.snp.makeConstraints { make in
-            make.top.equalTo(defaultImageButton.snp.bottom).offset(20)
+            make.top.equalTo(imageSelectionContainerView.snp.bottom).offset(24)
             make.leading.equalToSuperview().offset(20)
         }
 
@@ -297,6 +478,7 @@ final class CatRegisterViewController: BaseViewController {
             make.top.equalTo(datePicker.snp.bottom).offset(30)
             make.leading.trailing.equalToSuperview().inset(20)
             make.height.equalTo(50)
+            make.bottom.equalToSuperview().offset(-20)
         }
     }
 
@@ -315,6 +497,24 @@ final class CatRegisterViewController: BaseViewController {
                 self.photoWithMetadataSubject.onNext(photoWithMetadata)
             })
             .disposed(by: disposeBag)
+    }
+    
+    private func setupGestures() {
+        let photoTapGesture = UITapGestureRecognizer(target: self, action: #selector(photoContainerTapped))
+        photoContainerView.addGestureRecognizer(photoTapGesture)
+        photoContainerView.isUserInteractionEnabled = true
+        
+        let defaultImageTapGesture = UITapGestureRecognizer(target: self, action: #selector(defaultImageContainerTapped))
+        defaultImageContainerView.addGestureRecognizer(defaultImageTapGesture)
+        defaultImageContainerView.isUserInteractionEnabled = true
+    }
+    
+    @objc private func photoContainerTapped() {
+        photoPickerManager.showPhotoSelectionActionSheet()
+    }
+    
+    @objc private func defaultImageContainerTapped() {
+        showDefaultImagePicker()
     }
 
     @objc private func cancelButtonTapped() {
@@ -352,9 +552,7 @@ extension CatRegisterViewController {
     private func bind() {
         let input = CatRegisterViewModel.Input(
             viewDidLoad: .just(()),
-            photoButtonTapped: photoButton.rx.tap.asObservable(),
-            photoWithMetadataSelected: photoWithMetadataSubject.asObservable(),  // 변경
-            defaultImageButtonTapped: defaultImageButton.rx.tap.asObservable(),
+            photoWithMetadataSelected: photoWithMetadataSubject.asObservable(),
             defaultImageSelected: defaultImageSelectedSubject.asObservable(),
             nameTextChanged: nameTextField.rx.text.orEmpty.asObservable(),
             genderSelected: genderSegmentedControl.rx.selectedSegmentIndex.asObservable(),
@@ -367,15 +565,15 @@ extension CatRegisterViewController {
 
         let output = viewModel.transform(input)
 
-        output.showPhotoSelection
-            .drive(with: self) { owner, _ in
-                owner.photoPickerManager.showPhotoSelectionActionSheet()
-            }
-            .disposed(by: disposeBag)
-
         output.selectedPhoto
             .drive(with: self) { owner, image in
                 owner.displaySelectedPhoto(image)
+            }
+            .disposed(by: disposeBag)
+        
+        output.selectedDefaultImage
+            .drive(with: self) { owner, image in
+                owner.displaySelectedDefaultImage(image)
             }
             .disposed(by: disposeBag)
         
@@ -384,7 +582,6 @@ extension CatRegisterViewController {
             .drive(with: self) { owner, date in
                 if let date = date {
                     owner.datePicker.date = date
-                    print("DatePicker 날짜 설정: \(date)")
                 }
             }
             .disposed(by: disposeBag)
@@ -416,12 +613,6 @@ extension CatRegisterViewController {
                 owner.showErrorAlert(message: message)
             }
             .disposed(by: disposeBag)
-
-        output.showDefaultImagePicker
-            .drive(with: self) { owner, _ in
-                owner.showDefaultImagePicker()
-            }
-            .disposed(by: disposeBag)
     }
 
 }
@@ -430,7 +621,15 @@ extension CatRegisterViewController {
     private func displaySelectedPhoto(_ image: UIImage) {
         photoImageView.image = image
         photoImageView.isHidden = false
-        photoPlaceholderLabel.isHidden = true
+        photoPlaceholderStackView.isHidden = true
+        photoContainerView.layer.borderColor = UIColor.systemGreen.cgColor
+    }
+    
+    private func displaySelectedDefaultImage(_ image: UIImage) {
+        defaultImageView.image = image
+        defaultImageView.isHidden = false
+        defaultImagePlaceholderStackView.isHidden = true
+        defaultImageContainerView.layer.borderColor = UIColor.systemGreen.cgColor
     }
 
     private func showLocationPickerViewController() {
@@ -451,7 +650,7 @@ extension CatRegisterViewController {
             self?.dismiss(animated: true)
         }
     }
-
+    
     private func showDefaultImagePicker() {
         let defaultImageVC = DefaultImageViewController()
         defaultImageVC.delegate = self
@@ -492,15 +691,6 @@ extension CatRegisterViewController: UICollectionViewDataSource, UICollectionVie
 extension CatRegisterViewController: DefaultImageDelegate {
     func didSelectDefaultImage(_ image: UIImage, imageName: String) {
         defaultImageSelectedSubject.onNext(imageName)
-        
-        // 기본 이미지도 PhotoWithMetadata로 변환
-        let photoWithMetadata = PhotoWithMetadata(
-            image: image,
-            location: nil,
-            date: nil,
-            originalData: nil
-        )
-        photoWithMetadataSubject.onNext(photoWithMetadata)
-        displaySelectedPhoto(image)
+        displaySelectedDefaultImage(image)
     }
 }

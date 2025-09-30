@@ -18,9 +18,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
     struct Input {
         let viewDidLoad: Observable<Void>
-        let photoButtonTapped: Observable<Void>
-        let photoWithMetadataSelected: Observable<PhotoWithMetadata>  // 변경
-        let defaultImageButtonTapped: Observable<Void>
+        let photoWithMetadataSelected: Observable<PhotoWithMetadata>
         let defaultImageSelected: Observable<String>
         let nameTextChanged: Observable<String>
         let genderSelected: Observable<Int>
@@ -32,44 +30,27 @@ final class CatRegisterViewModel: ViewModelProtocol {
     }
 
     struct Output {
-        let showPhotoSelection: Driver<Void>
         let selectedPhoto: Driver<UIImage>
+        let selectedDefaultImage: Driver<UIImage>
         let locationText: Driver<String>
         let showLocationPicker: Driver<Void>
-        let showDefaultImagePicker: Driver<Void>
         let isRegisterEnabled: Driver<Bool>
         let registrationCompleted: Driver<Void>
         let errorMessage: Driver<String>
-        let extractedDate: Driver<Date?>  // 추가
+        let extractedDate: Driver<Date?>
     }
 
     private var selectedImage: UIImage?
-    private var originalImageData: Data?  // 원본 데이터 저장
+    private var originalImageData: Data?
     private var extractedLocation: CLLocationCoordinate2D?
     private var extractedDate: Date?
     private var manualLocation: CLLocationCoordinate2D?
     private var imagePath: String?
-    private var isDefaultImage = false
     private var defaultImageName: String?
 
     func transform(_ input: Input) -> Output {
-        let showPhotoSelection = input.photoButtonTapped
-            .asDriver(onErrorJustReturn: ())
-
-        let showDefaultImagePicker = input.defaultImageButtonTapped
-            .asDriver(onErrorJustReturn: ())
-
-        input.defaultImageSelected
-            .do { [weak self] imageName in
-                guard let self else { return }
-                self.isDefaultImage = true
-                self.defaultImageName = imageName
-                self.selectedImage = UIImage(named: imageName)
-            }
-            .subscribe()
-            .disposed(by: disposeBag)
-
         let extractedDateRelay = BehaviorRelay<Date?>(value: nil)
+        let selectedDefaultImageRelay = PublishRelay<UIImage>()
 
         // 메타데이터 포함 사진 처리
         let selectedPhoto = input.photoWithMetadataSelected
@@ -100,6 +81,20 @@ final class CatRegisterViewModel: ViewModelProtocol {
             })
             .map { $0.image }
             .asDriver(onErrorJustReturn: UIImage())
+
+        // 기본 이미지 선택 처리
+        input.defaultImageSelected
+            .do(onNext: { [weak self] imageName in
+                guard let self else { return }
+                self.defaultImageName = imageName
+                if let image = UIImage(named: imageName) {
+                    selectedDefaultImageRelay.accept(image)
+                }
+            })
+            .subscribe()
+            .disposed(by: disposeBag)
+        
+        let selectedDefaultImage = selectedDefaultImageRelay.asDriver(onErrorJustReturn: UIImage())
 
         let locationTextRelay = BehaviorRelay<String>(value: "위치 정보 가져오는 중")
 
@@ -135,13 +130,19 @@ final class CatRegisterViewModel: ViewModelProtocol {
         let showLocationPicker = input.locationButtonTapped
             .asDriver(onErrorJustReturn: ())
 
+        // 등록 버튼 활성화 조건: 사진, 기본 이미지, 이름, 위치 모두 필수
         let isRegisterEnabled = Observable.combineLatest(
-            input.nameTextChanged,
             input.photoWithMetadataSelected.map { _ in true }.startWith(false),
-            locationTextRelay.map { !$0.contains("위치 정보를 가져오는 중") }
+            input.defaultImageSelected.map { _ in true }.startWith(false),
+            input.nameTextChanged,
+            locationTextRelay.asObservable()
         )
-            .map { name, hasPhoto, hasLocation in
-                return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && hasPhoto && hasLocation
+            .map { hasPhoto, hasDefaultImage, name, locationText in
+                let hasValidName = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                let hasValidLocation = !locationText.contains("위치 정보를 가져오는 중") 
+                    && !locationText.contains("위치정보 없음")
+                
+                return hasPhoto && hasDefaultImage && hasValidName && hasValidLocation
             }
             .asDriver(onErrorJustReturn: false)
 
@@ -181,11 +182,10 @@ final class CatRegisterViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: "알 수 없는 오류가 발생했습니다")
 
-        return Output(showPhotoSelection: showPhotoSelection,
-                      selectedPhoto: selectedPhoto,
+        return Output(selectedPhoto: selectedPhoto,
+                      selectedDefaultImage: selectedDefaultImage,
                       locationText: locationText,
                       showLocationPicker: showLocationPicker,
-                      showDefaultImagePicker: showDefaultImagePicker,
                       isRegisterEnabled: isRegisterEnabled,
                       registrationCompleted: registrationCompleted,
                       errorMessage: errorMessage,
@@ -220,12 +220,28 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
 
+            // 실제 사진 필수 체크
             guard let selectedImage = self.selectedImage else {
                 observer.onNext(.failure(CatRegisterError.missingPhoto))
                 observer.onCompleted()
                 return Disposables.create()
             }
+            
+            // 이미지 경로 필수 체크
+            guard let imagePath = self.imagePath else {
+                observer.onNext(.failure(CatRegisterError.missingPhoto))
+                observer.onCompleted()
+                return Disposables.create()
+            }
+            
+            // 기본 이미지 필수 체크
+            guard let defaultImageName = self.defaultImageName else {
+                observer.onNext(.failure(CatRegisterError.missingDefaultImage))
+                observer.onCompleted()
+                return Disposables.create()
+            }
 
+            // 위치 정보 필수 체크
             let finalLocation: CLLocationCoordinate2D
             if let manualLocation = self.manualLocation {
                 finalLocation = manualLocation
@@ -241,48 +257,27 @@ final class CatRegisterViewModel: ViewModelProtocol {
             let finalDate = self.extractedDate ?? date
 
             do {
-                if self.isDefaultImage {
-                    let randomImageName = DefaultCatImages.imageNames.randomElement() ?? "black1_x1"
-                    let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                  meetDate: finalDate,
-                                  gender: genderIndex,
-                                  character: characterIndex == 5 ? nil : characterIndex,
-                                  drawImage: randomImageName,
-                                  lat: finalLocation.latitude,
-                                  lon: finalLocation.longitude)
+                let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                              meetDate: finalDate,
+                              gender: genderIndex,
+                              character: characterIndex == 5 ? nil : characterIndex,
+                              drawImage: defaultImageName,  // 선택한 기본 이미지 사용
+                              lat: finalLocation.latitude,
+                              lon: finalLocation.longitude)
 
-                    try self.realmManager.saveCat(cat)
-                } else {
-                    guard let imagePath = self.imagePath else {
-                        observer.onNext(.failure(CatRegisterError.missingPhoto))
-                        observer.onCompleted()
-                        return Disposables.create()
-                    }
+                try self.realmManager.saveCat(cat)
 
-                    let randomImageName = DefaultCatImages.imageNames.randomElement() ?? "black1_x1"
-
-                    let cat = Cat(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                  meetDate: finalDate,
-                                  gender: genderIndex,
-                                  character: characterIndex == 5 ? nil : characterIndex,
-                                  drawImage: randomImageName,
-                                  lat: finalLocation.latitude,
-                                  lon: finalLocation.longitude)
-
-                    try self.realmManager.saveCat(cat)
-
-                    let visitLog = VisitLog(catId: cat.id,
-                                            date: finalDate,
-                                            filePath: imagePath,
-                                            lat: finalLocation.latitude,
-                                            lon: finalLocation.longitude)
-                    try self.realmManager.saveVisitLog(visitLog, to: cat)
-                }
+                // 첫 방문 기록 자동 생성 (실제 사진 사용)
+                let visitLog = VisitLog(catId: cat.id,
+                                        date: finalDate,
+                                        filePath: imagePath,
+                                        lat: finalLocation.latitude,
+                                        lon: finalLocation.longitude)
+                try self.realmManager.saveVisitLog(visitLog, to: cat)
 
                 observer.onNext(.success(()))
             } catch {
                 observer.onNext(.failure(CatRegisterError.saveError(error)))
-
             }
 
             observer.onCompleted()
@@ -324,6 +319,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
 enum CatRegisterError: Error, LocalizedError {
     case missingPhoto
+    case missingDefaultImage
     case missingLocation
     case saveError(Error)
     case unknown
@@ -331,7 +327,9 @@ enum CatRegisterError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingPhoto:
-            return "사진을 선택해주세요"
+            return "고양이 사진을 선택해주세요"
+        case .missingDefaultImage:
+            return "지도 표시용 이미지를 선택해주세요"
         case .missingLocation:
             return "위치 정보를 설정해주세요"
         case .saveError(let error):
