@@ -24,6 +24,7 @@ final class HomeViewController: BaseViewController {
     private var isMenuExpanded = false
 
     private let catAnnotationTappedSubject = PublishSubject<Cat>()
+    private var marketAnnotations: [MarketAnnotation] = []
     private var currentCats: [Cat] = []
     private var isShowingGalleryMarkers = false
 
@@ -139,17 +140,21 @@ extension HomeViewController {
         mapView.delegate = self
         mapView.setToDefaultLoction()
         mapView.register(CatAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatAnnotationView.identifier)
-    }
 
-    private func moveToLocation(_ location: CLLocation) {
-        let regionRadius: CLLocationDistance = 500
-        let coordinateRegion = MKCoordinateRegion(
-            center: location.coordinate,
-            latitudinalMeters: regionRadius,
-            longitudinalMeters: regionRadius
-        )
+        let standardConfig = MKStandardMapConfiguration()
+        standardConfig.pointOfInterestFilter = MKPointOfInterestFilter(including: [
+            .airport,
+            .bank,
+            .gasStation,
+            .nationalPark,
+            .publicTransport,
+            .police,
+            .postOffice,
+            .school,
+            .museum
+        ])
 
-        mapView.setRegion(coordinateRegion, animated: true)
+        mapView.preferredConfiguration = standardConfig
     }
 }
 
@@ -212,6 +217,12 @@ extension HomeViewController {
                 owner.showCatDetailAlert(cat)
             }
             .disposed(by: disposeBag)
+
+        output.storeData
+            .drive(with: self) { owner, markets in
+                owner.updateMarketMarkers(markets)
+            }
+            .disposed(by: disposeBag)
     }
 }
 
@@ -231,6 +242,17 @@ extension HomeViewController {
         }
     }
 
+    private func moveToLocation(_ location: CLLocation) {
+        let regionRadius: CLLocationDistance = 500
+        let coordinateRegion = MKCoordinateRegion(
+            center: location.coordinate,
+            latitudinalMeters: regionRadius,
+            longitudinalMeters: regionRadius
+        )
+
+        mapView.setRegion(coordinateRegion, animated: true)
+    }
+
     private func updateCatMarkers(_ cats: [Cat]) {
         let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
         mapView.removeAnnotations(existingCatAnnotations)
@@ -246,28 +268,15 @@ extension HomeViewController {
         mapView.addAnnotations(catAnnotations)
     }
 
-    private func showErrorAlert(message: String) {
-        let alert = UIAlertController(title: "위치 오류", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+    private func updateMarketMarkers(_ markets: [MarketModel]) {
+        print("호출: \(markets.count)개")
+        mapView.removeAnnotations(marketAnnotations)
+        marketAnnotations.removeAll()
+
+        marketAnnotations = markets.map{ MarketAnnotation(market: $0) }
+        print("어노테이션 생성: \(marketAnnotations.count)개")
+        mapView.addAnnotations(marketAnnotations)
     }
-
-    private func showLocationPermissionAlert() {
-         let alert = UIAlertController(
-             title: "위치 권한 필요",
-             message: "현재 위치 기능을 사용하려면 위치 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
-             preferredStyle: .alert
-         )
-
-         alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { [weak self] _ in
-             guard let self else { return }
-             locationManager.openLocationSettings()
-         })
-
-         alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-
-         present(alert, animated: true)
-     }
 
     private func showCatDetailAlert(_ cat: Cat) {
          let alert = UIAlertController(
@@ -295,13 +304,40 @@ extension HomeViewController {
 extension HomeViewController: MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
-        guard let catAnnotation = annotation as? CatAnnotation else {
+        // 사용자 위치
+        if annotation is MKUserLocation {
             return nil
         }
-        let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: CatAnnotationView.identifier, for: annotation) as! CatAnnotationView
-        annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
 
-        return annotationView
+        // 고양이 마커
+        if let catAnnotation = annotation as? CatAnnotation {
+            let annotationView = mapView.dequeueReusableAnnotationView(
+                withIdentifier: CatAnnotationView.identifier,
+                for: annotation
+            ) as! CatAnnotationView
+            annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
+            return annotationView
+        }
+
+        // 마켓 마커
+        if let marketAnnotation = annotation as? MarketAnnotation {
+            let identifier = "MarketPin"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+
+            if annotationView == nil {
+                annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                annotationView?.canShowCallout = true
+            } else {
+                annotationView?.annotation = annotation
+            }
+
+            annotationView?.markerTintColor = .systemOrange
+            annotationView?.glyphImage = UIImage(systemName: "cart.fill")
+
+            return annotationView
+        }
+
+        return nil
     }
 
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
@@ -317,6 +353,7 @@ extension HomeViewController: MKMapViewDelegate {
             renderer.lineWidth = 4.0
             return renderer
         }
+
         return MKOverlayRenderer(overlay: overlay)
     }
 }
@@ -372,7 +409,6 @@ extension HomeViewController {
 
     private func displayRoute(_ route: MKRoute, destinationName: String) {
         mapView.removeOverlays(mapView.overlays)
-
         mapView.addOverlay(route.polyline)
 
         let rect = route.polyline.boundingMapRect
@@ -382,6 +418,7 @@ extension HomeViewController {
 
         showRouteInfo(route: route, destinationName: destinationName)
     }
+
 
     private func showRouteInfo(route: MKRoute, destinationName: String) {
         let distance = Measurement(value: route.distance, unit: UnitLength.meters)
@@ -423,9 +460,6 @@ extension HomeViewController {
     }
 
     private func showRouteError(message: String) {
-        let alert = UIAlertController(title: "경로 오류", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+        showErrorAlert(message: message)
     }
 }
-

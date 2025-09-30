@@ -15,6 +15,7 @@ final class HomeViewModel: ViewModelProtocol {
 
     private let locationManager = LocationManager.shared
     private let realmManager = RealmManager.shared
+    private let networkManager = NetworkManager.shared
 
     struct Input {
         let viewDidLoad: Observable<Void>
@@ -30,14 +31,12 @@ final class HomeViewModel: ViewModelProtocol {
     struct Output {
         let cats: Driver<[Cat]>
         let isMenuExpanded: Driver<Bool>
-        let showStoreMarkers: Driver<Bool>
         let showGalleryMarkers: Driver<Bool>
         let locationError: Driver<String>
-        let currentLocation: Driver<CLLocation?>
         let moveToCurrentLocation: Driver<CLLocation>
         let showLocationPermissionAlert: Driver<Void>
         let showCatDetail: Driver<Cat>
-        let navigateToProfile: Driver<Void>
+        let storeData: Driver<[MarketModel]>
     }
 
     func transform(_ input: Input) -> Output {
@@ -56,23 +55,19 @@ final class HomeViewModel: ViewModelProtocol {
             .startWith(false)
             .asDriver(onErrorJustReturn: false)
 
-        let showStoreMarkers = input.storeToggleTapped
-            .scan(false) { currentState, _ in !currentState }
-            .startWith(false)
-            .asDriver(onErrorJustReturn: false)
-
         let showGalleryMarkers = input.galleryToggleTapped
             .scan(false) { currentState, _ in !currentState }
             .startWith(false)
             .asDriver(onErrorJustReturn: false)
 
+        // 현위치 버튼 탭 시 권한 요청 포함 (requestPermissionIfNeeded: true)
         let currentLocationResult = input.currentLocationTapped
             .flatMap { [weak self] _ -> Observable<Result<CLLocation, LocationError>> in
                 guard let self = self else {
                     return Observable.just(.failure(.unknown))
                 }
 
-                return self.locationManager.getCurrentLocation()
+                return self.locationManager.getCurrentLocation(requestPermissionIfNeeded: true)
                     .asObservable()
                     .map { Result.success($0) }
                     .catch { error in
@@ -81,51 +76,78 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .share()
 
+        // 성공한 경우에만 위치 이동
         let moveToCurrentLocation = currentLocationResult
-            .compactMap { result in
+            .compactMap { result -> CLLocation? in
                 if case .success(let location) = result {
+                    print("현재 위치로 이동: \(location.coordinate.latitude), \(location.coordinate.longitude)")
                     return location
                 }
                 return nil
             }
-            .asDriver(onErrorJustReturn: CLLocation(latitude: 37.5665, longitude: 126.9780))
+            .asDriver(onErrorDriveWith: .empty()) // 에러 시에는 아무것도 emit하지 않음
 
+        // 에러 메시지 (권한 거부 제외)
         let locationError = currentLocationResult
-            .compactMap { result in
-                if case .failure(let error) = result {
+            .compactMap { result -> String? in
+                if case .failure(let error) = result, error != .permissionDenied {
+                    print("위치 에러: \(error)")
                     return error.errorDescription
                 }
                 return nil
             }
             .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
 
+        // 권한 거부 시에만 권한 알림창 표시
         let showLocationPermissionAlert = currentLocationResult
-            .compactMap { result in
+            .compactMap { result -> Void? in
                 if case .failure(let error) = result, error == .permissionDenied {
+                    print("권한 거부됨 - 설정 알림창 표시")
                     return ()
                 }
                 return nil
             }
             .asDriver(onErrorJustReturn: ())
 
-        let currentLocation = locationManager.currentLocation
-            .asDriver(onErrorJustReturn: nil)
-
         let showCatDetail = input.catAnnotationTapped
             .asDriver(onErrorJustReturn: Cat())
 
-        let navigateToProfile = input.profileTapped.asDriver(onErrorJustReturn: ())
+        let storeData = input.storeToggleTapped
+            .withLatestFrom(currentLocationResult)
+            .compactMap { result -> CLLocationCoordinate2D? in
+                let coord = try? result.get().coordinate
+                print(coord)
+                return coord
+            }
+            .flatMapLatest { [weak self] coordinate -> Single<[MarketModel]> in
+                guard let self else { return .just([]) }
+                print("API호출 시작")
+
+                return self.networkManager.fetchData(
+                    lat: coordinate.latitude,
+                    lon: coordinate.longitude
+                )
+                .map { result in
+                    switch result {
+                    case .success(let markets):
+                        print("마켓 데이터: \(markets.count)개")
+                        return markets
+                    case .failure(let error):
+                        print("가게 검색 실패: \(error.message)")
+                        return []
+                    }
+                }
+            }
+            .asDriver(onErrorJustReturn: [])
 
         return Output(cats: cats,
                       isMenuExpanded: isMenuExpanded,
-                      showStoreMarkers: showStoreMarkers,
                       showGalleryMarkers: showGalleryMarkers,
                       locationError: locationError,
-                      currentLocation: currentLocation,
                       moveToCurrentLocation: moveToCurrentLocation,
                       showLocationPermissionAlert: showLocationPermissionAlert,
                       showCatDetail: showCatDetail,
-                      navigateToProfile: navigateToProfile
+                      storeData: storeData
                     )
     }
 }
