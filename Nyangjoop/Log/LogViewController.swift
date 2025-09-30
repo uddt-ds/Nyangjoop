@@ -1,4 +1,3 @@
-
 //  LogViewController.swift
 //  Nyangjoop
 //
@@ -14,7 +13,16 @@ final class LogViewController: BaseViewController {
     private var disposeBag = DisposeBag()
     private let viewModel = LogViewModel()
 
+    private let viewWillAppearSubject = PublishSubject<Void>()
     private let catSelectedSubject = PublishSubject<Cat?>()
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "기록하기"
+        label.font = .systemFont(ofSize: 28, weight: .bold)
+        label.textColor = .label
+        return label
+    }()
 
     private lazy var catSelectionCollectionView: UICollectionView = {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: createCatSelectionLayout())
@@ -66,19 +74,28 @@ final class LogViewController: BaseViewController {
         setupCollectionViews()
         bind()
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewWillAppearSubject.onNext(())
+    }
 
     override func configureHierarchy() {
         super.configureHierarchy()
 
-        [catSelectionCollectionView, logCollectionView, addLogButton].forEach {
+        [titleLabel, catSelectionCollectionView, logCollectionView, addLogButton].forEach {
             view.addSubview($0)
         }
     }
 
     override func configureLayout() {
+        titleLabel.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(16)
+            make.leading.equalToSuperview().offset(20)
+        }
 
         catSelectionCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(20)
+            make.top.equalTo(titleLabel.snp.bottom).offset(16)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(100)
         }
@@ -104,15 +121,26 @@ final class LogViewController: BaseViewController {
     }
 
     private func createGridLayout() -> UICollectionViewLayout {
-
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1/3), heightDimension: .fractionalHeight(1.0))
+        // 2x2 그리드 레이아웃
+        let spacing: CGFloat = 8
+        
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1/2),
+            heightDimension: .fractionalHeight(1.0)
+        )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(0.45))
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalWidth(0.5)  // 정사각형 비율 유지
+        )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        group.interItemSpacing = .fixed(spacing)
 
         let section = NSCollectionLayoutSection(group: group)
+        section.interGroupSpacing = spacing
         section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 14, bottom: 100, trailing: 14)
+        
         return UICollectionViewCompositionalLayout(section: section)
     }
 }
@@ -122,6 +150,7 @@ extension LogViewController {
     private func bind() {
         let input = LogViewModel.Input(
             viewDidLoad: .just(()),
+            viewWillAppear: viewWillAppearSubject.asObservable(),
             catSelected: catSelectedSubject.asObservable(),
             addLogButtonTapped: addLogButton.rx.tap.asObservable()
         )

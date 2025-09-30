@@ -15,6 +15,7 @@ final class LogViewModel: ViewModelProtocol {
 
     struct Input {
         let viewDidLoad: Observable<Void>
+        let viewWillAppear: Observable<Void>
         let catSelected: Observable<Cat?>
         let addLogButtonTapped: Observable<Void>
     }
@@ -31,15 +32,16 @@ final class LogViewModel: ViewModelProtocol {
     private let selectedCatRelay = BehaviorRelay<Cat?>(value: nil)
 
     var numberOfCats: Int {
-        return catsRelay.value.count
+        return catsRelay.value.count + 1  // "전체" 포함
     }
 
     var numberOfVisitLogs: Int {
         return visitLogRelay.value.count
     }
 
-    func cat(at index: Int) -> Cat {
-        return catsRelay.value[index]
+    func cat(at index: Int) -> Cat? {
+        if index == 0 { return nil }  // "전체"는 nil로 표현
+        return catsRelay.value[index - 1]
     }
 
     func visitLog(at index: Int) -> VisitLog {
@@ -47,12 +49,16 @@ final class LogViewModel: ViewModelProtocol {
     }
 
     func isSelectedCat(at index: Int) -> Bool {
+        if index == 0 {
+            return selectedCatRelay.value == nil  // "전체"가 선택되었는지
+        }
         guard let selectedCat = selectedCatRelay.value else { return false }
-        return catsRelay.value[index].id == selectedCat.id
+        return catsRelay.value[index - 1].id == selectedCat.id
     }
 
     func transform(_ input: Input) -> Output {
-        input.viewDidLoad
+        // viewDidLoad와 viewWillAppear 둘 다에서 데이터 로드
+        Observable.merge(input.viewDidLoad, input.viewWillAppear)
             .subscribe(with: self) { owner, _ in
                 owner.loadCats()
                 owner.loadAllVisitLogs()
@@ -84,10 +90,13 @@ final class LogViewModel: ViewModelProtocol {
         let cats = Array(realmManager.fetchAllCats())
         catsRelay.accept(cats)
 
-        if let firstCat = cats.first {
-            selectedCatRelay.accept(firstCat)
-
+        // 선택된 고양이가 삭제되었다면 "전체" 선택
+        if let currentSelectedCat = selectedCatRelay.value,
+           !cats.contains(where: { $0.id == currentSelectedCat.id }) {
+            selectedCatRelay.accept(nil)  // "전체"로 설정
         }
+        
+        // 처음 로드 시 "전체" 선택 (nil이면 이미 "전체"가 선택된 상태)
     }
 
     private func loadAllVisitLogs() {

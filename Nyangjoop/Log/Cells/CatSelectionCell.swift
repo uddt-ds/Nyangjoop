@@ -15,6 +15,7 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.backgroundColor = .systemGray5
+        imageView.layer.cornerRadius = 30  // 60 / 2
         return imageView
     }()
     
@@ -31,13 +32,13 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         view.backgroundColor = .clear
         view.layer.borderWidth = 3
         view.layer.borderColor = UIColor.systemBlue.cgColor
+        view.layer.cornerRadius = 33  // 66 / 2
         view.isHidden = true
         return view
     }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layoutSubviews()
         configureHierarchy()
         configureLayout()
         configureView()
@@ -46,12 +47,6 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-    }
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        catImageView.layer.cornerRadius = catImageView.frame.width / 2
-        selectionBorder.layer.cornerRadius = selectionBorder.frame.width / 2
     }
     
     private func configureHierarchy() {
@@ -82,15 +77,34 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         backgroundColor = .clear
     }
     
-    func configure(with cat: Cat, isSelected: Bool) {
-        nameLabel.text = cat.name
-        
-        // 고양이 이미지 설정
-        if let image = UIImage(named: cat.drawImage) {
-            catImageView.image = image
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        // 재사용 시 이미지 초기화
+        catImageView.image = nil
+        catImageView.contentMode = .scaleAspectFill
+        nameLabel.text = nil
+        selectionBorder.isHidden = true
+    }
+    
+    func configure(with cat: Cat?, isSelected: Bool) {
+        // cat이 nil이면 "전체" 표시
+        if let cat = cat {
+            nameLabel.text = cat.name
+            catImageView.contentMode = .scaleAspectFill
+            
+            // 고양이 이미지 설정
+            if let image = UIImage(named: cat.drawImage) {
+                catImageView.image = image
+            } else {
+                catImageView.image = UIImage(systemName: "cat.fill")
+                catImageView.tintColor = .systemGray3
+            }
         } else {
-            catImageView.image = UIImage(systemName: "cat.fill")
-            catImageView.tintColor = .systemGray3
+            // "전체" 셀
+            nameLabel.text = "전체"
+            catImageView.image = UIImage(systemName: "square.grid.2x2")
+            catImageView.tintColor = .systemBlue
+            catImageView.contentMode = .scaleAspectFit
         }
         
         // 선택 상태 표시
