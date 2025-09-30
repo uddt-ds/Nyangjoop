@@ -44,9 +44,10 @@ final class CustomTabBarController: UIViewController {
 
     private func setupViewControllers() {
         let homeVC = HomeViewController()
+        let nav = UINavigationController(rootViewController: homeVC)
         let logVC = LogViewController()
 
-        viewControllers = [homeVC, logVC]
+        viewControllers = [nav, logVC]
 
         viewControllers.forEach { vc in
             addChild(vc)

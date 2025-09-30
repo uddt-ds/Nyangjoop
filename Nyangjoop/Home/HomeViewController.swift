@@ -33,6 +33,7 @@ final class HomeViewController: BaseViewController {
         let mapView = MKMapView()
         mapView.showsUserLocation = true
         mapView.userTrackingMode = .none
+        mapView.showsCompass = false  // 나침반 숨기기
         return mapView
     }()
 
@@ -76,8 +77,6 @@ final class HomeViewController: BaseViewController {
         return button
     }()
 
-
-
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
@@ -86,6 +85,7 @@ final class HomeViewController: BaseViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: true)
         viewWillAppearSubject.onNext(())
     }
 
@@ -130,8 +130,6 @@ final class HomeViewController: BaseViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.size.equalTo(44)
         }
-
-
     }
 
     override func configureView() {
@@ -175,8 +173,7 @@ extension HomeViewController {
             galleryToggleTapped: galleryToggleButton.rx.tap.asObservable(),
             currentLocationTapped: currentLocationButton.rx.tap.asObservable(),
             profileTapped: profileButton.rx.tap.asObservable(),
-            catAnnotationTapped: catAnnotationTappedSubject.asObservable(),
-
+            catAnnotationTapped: catAnnotationTappedSubject.asObservable()
         )
 
         let output = viewModel.transform(input)
@@ -239,6 +236,12 @@ extension HomeViewController {
                 }
             }
             .disposed(by: disposeBag)
+
+        output.showProfileView
+            .drive(with: self) { owner, _ in
+                owner.pushProfile()
+            }
+            .disposed(by: disposeBag)
     }
 }
 
@@ -268,6 +271,7 @@ extension HomeViewController {
 
         mapView.setRegion(coordinateRegion, animated: true)
     }
+
 
     private func updateCatMarkers(_ cats: [Cat]) {
         let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
@@ -317,6 +321,11 @@ extension HomeViewController {
 
          present(alert, animated: true)
      }
+
+    private func pushProfile() {
+        let profileVC = ProfileViewController()
+        navigationController?.pushViewController(profileVC, animated: true)
+    }
 }
 
 extension HomeViewController: MKMapViewDelegate {

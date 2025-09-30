@@ -36,6 +36,7 @@ final class HomeViewModel: ViewModelProtocol {
         let moveToCurrentLocation: Driver<CLLocation>
         let showLocationPermissionAlert: Driver<Void>
         let showCatDetail: Driver<Cat>
+        let showProfileView: Driver<Void>
         let storeData: Driver<[MarketModel]>
         let isShowingStores: Driver<Bool>
     }
@@ -143,6 +144,9 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: [])
 
+        let showProfileView = input.profileTapped
+            .asDriver(onErrorJustReturn: ())
+
 
         return Output(cats: cats,
                       isMenuExpanded: isMenuExpanded,
@@ -151,6 +155,7 @@ final class HomeViewModel: ViewModelProtocol {
                       moveToCurrentLocation: moveToCurrentLocation,
                       showLocationPermissionAlert: showLocationPermissionAlert,
                       showCatDetail: showCatDetail,
+                      showProfileView: showProfileView,
                       storeData: storeData,
                       isShowingStores: isShowingStores.asDriver(onErrorJustReturn: false)
                     )
