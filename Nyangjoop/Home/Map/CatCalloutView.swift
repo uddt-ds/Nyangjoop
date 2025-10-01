@@ -49,7 +49,7 @@ final class CatCalloutView: UIView {
         button.setTitle("길찾기", for: .normal)
         button.setImage(UIImage(systemName: "location.fill"), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = .systemBlue
+        button.backgroundColor = .retroBlue
         button.layer.cornerRadius = 8
         button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 0)
@@ -61,7 +61,7 @@ final class CatCalloutView: UIView {
         button.setTitle("정보", for: .normal)
         button.setImage(UIImage(systemName: "info.circle.fill"), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = .systemOrange
+        button.backgroundColor = .retroYellow
         button.layer.cornerRadius = 8
         button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 0)

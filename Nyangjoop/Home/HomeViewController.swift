@@ -48,7 +48,12 @@ final class HomeViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "person.circle.fill"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .systemBlue
+        button.tintColor = .retroYellow
+        button.layer.cornerRadius = 10
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
         return button
     }()
 
@@ -56,15 +61,25 @@ final class HomeViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .systemGray
+        button.tintColor = .retroBlue
+        button.layer.cornerRadius = 10
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
         return button
     }()
 
     private let storeToggleButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "cart.fill"), for: .normal)
+        button.setImage(UIImage(systemName: "fish.fill"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .systemOrange
+        button.tintColor = .retroYellow
+        button.layer.cornerRadius = 10
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
         return button
     }()
 
@@ -72,7 +87,12 @@ final class HomeViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "photo"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .systemBlue
+        button.tintColor = .retroYellow
+        button.layer.cornerRadius = 10
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
         return button
     }()
 
@@ -80,7 +100,12 @@ final class HomeViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "location.fill"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .systemBlue
+        button.tintColor = .retroYellow
+        button.layer.cornerRadius = 10
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
         return button
     }()
 
@@ -115,12 +140,6 @@ final class HomeViewController: BaseViewController {
             make.size.equalTo(44)
         }
 
-        menuToggleButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().offset(-20)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-80)
-            make.size.equalTo(44)
-        }
-
         storeToggleButton.snp.makeConstraints { make in
             make.centerY.equalTo(menuToggleButton)
             make.trailing.equalTo(menuToggleButton.snp.leading).offset(-12)
@@ -134,8 +153,14 @@ final class HomeViewController: BaseViewController {
         }
 
         currentLocationButton.snp.makeConstraints { make in
-            make.bottom.equalTo(menuToggleButton.snp.top).offset(-20)
             make.trailing.equalToSuperview().offset(-20)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-40)
+            make.size.equalTo(44)
+        }
+
+        menuToggleButton.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().offset(-20)
+            make.bottom.equalTo(currentLocationButton.snp.top).offset(-20)
             make.size.equalTo(44)
         }
     }
