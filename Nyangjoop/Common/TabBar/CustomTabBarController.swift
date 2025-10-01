@@ -63,25 +63,28 @@ final class CustomTabBarController: UIViewController {
     private func configureLayout() {
         containerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
-         }
+        }
 
-         customTabBar.snp.makeConstraints { make in
-             make.leading.trailing.equalToSuperview().inset(20)
-             make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
-             make.height.equalTo(50)
-         }
+        customTabBar.snp.makeConstraints { make in
+            make.leading.trailing.bottom.equalToSuperview()
+            make.height.equalTo(120)
+        }
     }
 
     private func bindTabBar() {
         customTabBar.tabSelected
             .subscribe(onNext: { [weak self] index in
                 guard let self else { return }
+                print("탭 선택됨: \(index)")
                 switch index {
                 case 0:
+                    print("홈 화면으로 이동")
                     self.selectedIndex = 0
                 case 1:
+                    print("등록 모달 표시")
                     self.presentCatRegisterViewController()
                 case 2:
+                    print("로그 화면으로 이동")
                     self.selectedIndex = 1
                 default:
                     break
@@ -100,15 +103,17 @@ final class CustomTabBarController: UIViewController {
         selectedVC.view.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
-
-        let tabIndex = selectedIndex == 0 ? 0 : 2
-        customTabBar.selectTab(at: tabIndex)
     }
 
     private func presentCatRegisterViewController() {
+        print("CatRegisterViewController 생성 시작")
         let catRegisterVC = CatRegisterViewController()
         let nav = UINavigationController(rootViewController: catRegisterVC)
         nav.modalPresentationStyle = .fullScreen
-        present(nav, animated: true)
+        
+        print("모달 present 시작")
+        present(nav, animated: true) {
+            print("모달 present 완료")
+        }
     }
 }
