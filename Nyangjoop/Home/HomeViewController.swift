@@ -31,6 +31,21 @@ final class HomeViewController: BaseViewController {
     private var currentCalloutView: CatCalloutView?
     private var selectedCat: Cat?
 
+    private let clearRouteButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("경로 지우기", for: .normal)
+        button.backgroundColor = .systemRed
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        button.layer.cornerRadius = 22
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.2
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        button.isHidden = true
+        return button
+    }()
+
     // 클러스터링 제어
     private let clusteringThresholdZoom: Double = 0.015
     private var lastClusteringState: Bool = false
@@ -125,7 +140,7 @@ final class HomeViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
 
-        [mapView, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton].forEach { view.addSubview($0) }
+        [mapView, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton, clearRouteButton].forEach { view.addSubview($0) }
     }
 
     override func configureLayout() {
@@ -162,6 +177,13 @@ final class HomeViewController: BaseViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.bottom.equalTo(currentLocationButton.snp.top).offset(-20)
             make.size.equalTo(44)
+        }
+        
+        clearRouteButton.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            make.centerX.equalToSuperview()
+            make.height.equalTo(44)
+            make.width.equalTo(120)
         }
     }
 
@@ -303,6 +325,12 @@ extension HomeViewController {
         output.showProfileView
             .drive(with: self) { owner, _ in
                 owner.pushProfile()
+            }
+            .disposed(by: disposeBag)
+        
+        clearRouteButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.clearRoute()
             }
             .disposed(by: disposeBag)
     }
@@ -597,7 +625,36 @@ extension HomeViewController: CatCalloutViewDelegate {
     func calloutViewDidTapInfo() {
         guard let cat = selectedCat else { return }
         removeCurrentCalloutView()
-        print("고양이 정보 보기 - \(cat.name)")
+        showCatInfoView(for: cat)
+    }
+    
+    private func showCatInfoView(for cat: Cat) {
+        let catInfoView = CatInfoView()
+        catInfoView.delegate = self
+        catInfoView.configure(with: cat)
+        catInfoView.alpha = 0
+        
+        view.addSubview(catInfoView)
+        
+        catInfoView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        UIView.animate(withDuration: 0.3) {
+            catInfoView.alpha = 1
+        }
+    }
+}
+
+extension HomeViewController: CatInfoViewDelegate {
+    func catInfoViewDidTapConfirm() {
+        guard let catInfoView = view.subviews.first(where: { $0 is CatInfoView }) else { return }
+        
+        UIView.animate(withDuration: 0.2, animations: {
+            catInfoView.alpha = 0
+        }) { _ in
+            catInfoView.removeFromSuperview()
+        }
     }
 }
 
@@ -665,11 +722,12 @@ extension HomeViewController {
         let adjustedRegion = mapView.regionThatFits(region)
         mapView.setRegion(adjustedRegion, animated: true)
 
-        showRouteInfo(route: route, destinationName: destinationName)
+        showClearRouteButton()
+        showRouteInfoToast(route: route, destinationName: destinationName)
     }
 
 
-    private func showRouteInfo(route: MKRoute, destinationName: String) {
+    private func showRouteInfoToast(route: MKRoute, destinationName: String) {
         let distance = Measurement(value: route.distance, unit: UnitLength.meters)
         let time = route.expectedTravelTime
 
@@ -680,20 +738,36 @@ extension HomeViewController {
         let distanceString = formatter.string(from: distance.converted(to: .kilometers))
         let timeString = formatTravelTime(time)
 
-        let alert = UIAlertController(title: "\(destinationName)까지의 경로", message: "거리: \(distanceString) | 시간: \(timeString)", preferredStyle: .alert)
-
-        alert.addAction(UIAlertAction(title: "경로 지우기", style: .destructive) { [weak self] _ in
-            guard let self else { return }
-            self.clearRoute()
-        })
-
+        let message = "\(destinationName)까지 \(distanceString) | \(timeString)"
+        
+        let alert = UIAlertController(title: "경로 안내", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
-
         present(alert, animated: true)
+    }
+    
+    private func showClearRouteButton() {
+        clearRouteButton.isHidden = false
+        clearRouteButton.alpha = 0
+        clearRouteButton.transform = CGAffineTransform(translationX: 0, y: -20)
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
+            self.clearRouteButton.alpha = 1
+            self.clearRouteButton.transform = .identity
+        }
+    }
+    
+    private func hideClearRouteButton() {
+        UIView.animate(withDuration: 0.2) {
+            self.clearRouteButton.alpha = 0
+            self.clearRouteButton.transform = CGAffineTransform(translationX: 0, y: -20)
+        } completion: { _ in
+            self.clearRouteButton.isHidden = true
+        }
     }
 
     private func clearRoute() {
         mapView.removeOverlays(mapView.overlays)
+        hideClearRouteButton()
         
         locationManager.getCurrentLocation()
             .observe(on: MainScheduler.instance)

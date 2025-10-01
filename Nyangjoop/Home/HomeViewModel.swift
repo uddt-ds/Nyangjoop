@@ -119,10 +119,57 @@ final class HomeViewModel: ViewModelProtocol {
             .startWith(false)
             .share()
 
-        let storeData = input.storeToggleTapped
-            .withLatestFrom(Observable.combineLatest(isShowingStores, currentLocationResult))
-            .filter { isShowing, _ in isShowing }
-            .compactMap{ _, result -> CLLocationCoordinate2D? in
+        // 간식 가게 버튼 탭 시 위치 권한 체크
+        let storeLocationResult = input.storeToggleTapped
+            .withLatestFrom(isShowingStores)
+            .filter { $0 } // 가게를 보여주려고 할 때만
+            .flatMap { [weak self] _ -> Observable<Result<CLLocation, LocationError>> in
+                guard let self = self else {
+                    return Observable.just(.failure(.unknown))
+                }
+
+                return self.locationManager.getCurrentLocation(requestPermissionIfNeeded: true)
+                    .asObservable()
+                    .map { Result.success($0) }
+                    .catch { error in
+                        return Observable.just(.failure(error as? LocationError ?? .unknown))
+                    }
+            }
+            .share()
+        
+        // 간식 가게 검색 실패 시 상태 초기화
+        let storeSearchFailed = storeLocationResult
+            .compactMap { result -> Void? in
+                if case .failure = result {
+                    return ()
+                }
+                return nil
+            }
+            .share()
+        
+        // 간식 가게 버튼 권한 거부 alert
+        let showStoreLocationPermissionAlert = storeLocationResult
+            .compactMap { result -> Void? in
+                if case .failure(let error) = result, error == .permissionDenied {
+                    print("간식 가게 - 권한 거부됨")
+                    return ()
+                }
+                return nil
+            }
+            .asDriver(onErrorJustReturn: ())
+        
+        // 간식 가게 위치 에러
+        let storeLocationError = storeLocationResult
+            .compactMap { result -> String? in
+                if case .failure(let error) = result, error != .permissionDenied {
+                    return error.errorDescription
+                }
+                return nil
+            }
+            .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
+
+        let storeData = storeLocationResult
+            .compactMap { result -> CLLocationCoordinate2D? in
                 return try? result.get().coordinate
             }
             .flatMapLatest { [weak self] coordinate -> Single<[MarketModel]> in
@@ -151,9 +198,9 @@ final class HomeViewModel: ViewModelProtocol {
         return Output(cats: cats,
                       isMenuExpanded: isMenuExpanded,
                       showGalleryMarkers: showGalleryMarkers,
-                      locationError: locationError,
+                      locationError: Driver.merge(locationError, storeLocationError),
                       moveToCurrentLocation: moveToCurrentLocation,
-                      showLocationPermissionAlert: showLocationPermissionAlert,
+                      showLocationPermissionAlert: Driver.merge(showLocationPermissionAlert, showStoreLocationPermissionAlert),
                       showCatDetail: showCatDetail,
                       showProfileView: showProfileView,
                       storeData: storeData,
