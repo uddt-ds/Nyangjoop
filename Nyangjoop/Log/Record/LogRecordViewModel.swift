@@ -20,6 +20,7 @@ final class LogRecordViewModel: ViewModelProtocol {
         let selectedCat: Observable<Cat?>
         let photoButtonTapped: Observable<Void>
         let photoSelected: Observable<UIImage>
+        let locationFromPhoto: Observable<CLLocationCoordinate2D>
         let memoTextChanged: Observable<String>
         let saveButtonTapped: Observable<Void>
     }
@@ -41,6 +42,13 @@ final class LogRecordViewModel: ViewModelProtocol {
         input.selectedCat
             .subscribe(with: self) { owner, cat in
                 owner.selectedCat = cat
+            }
+            .disposed(by: disposeBag)
+
+        input.locationFromPhoto
+            .subscribe(with: self) { owner, coordinate in
+                print("사진에서 추출한 위치: \(coordinate.latitude), \(coordinate.longitude)")
+                owner.currentLocation = coordinate
             }
             .disposed(by: disposeBag)
 

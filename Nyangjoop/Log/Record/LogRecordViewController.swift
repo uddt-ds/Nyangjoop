@@ -270,6 +270,7 @@ extension LogRecordViewController {
             selectedCat: selectedCatSubject.asObservable(),
             photoButtonTapped: photoButton.rx.tap.asObservable(),
             photoSelected: photoSelectedSubject.asObservable(),
+            locationFromPhoto: locationSetSubject.asObservable(),
             memoTextChanged: memoTextView.rx.text.orEmpty.asObservable(),
             saveButtonTapped: saveButton.rx.tap.asObservable()
         )
@@ -426,11 +427,51 @@ extension LogRecordViewController: UIImagePickerControllerDelegate, UINavigation
 
         if let image = info[.originalImage] as? UIImage {
             photoSelectedSubject.onNext(image)
+            
+            // 메타데이터 추출
+            if let imageURL = info[.imageURL] as? URL {
+                extractMetadata(from: imageURL)
+            } else if let mediaMetadata = info[.mediaMetadata] as? [String: Any] {
+                extractMetadataFromDictionary(mediaMetadata)
+            }
         }
     }
 
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
+    }
+    
+    private func extractMetadata(from url: URL) {
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let metadata = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] else {
+            print("메타데이터를 찾을 수 없습니다")
+            return
+        }
+        
+        print("이미지 메타데이터: \(metadata)")
+        
+        if let gpsData = metadata["{GPS}"] as? [String: Any] {
+            extractGPSData(from: gpsData)
+        }
+    }
+    
+    private func extractMetadataFromDictionary(_ metadata: [String: Any]) {
+        print("메타데이터: \(metadata)")
+        
+        if let gpsData = metadata["{GPS}"] as? [String: Any] {
+            extractGPSData(from: gpsData)
+        }
+    }
+    
+    private func extractGPSData(from gpsData: [String: Any]) {
+        if let latitude = gpsData["Latitude"] as? Double,
+           let longitude = gpsData["Longitude"] as? Double {
+            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            locationSetSubject.onNext(coordinate)
+            print("위치 정보: \(latitude), \(longitude)")
+        } else {
+            print("GPS 데이터를 찾을 수 없습니다")
+        }
     }
 }
 
