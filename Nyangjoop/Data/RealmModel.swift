@@ -43,8 +43,12 @@ final class Cat: Object {
         return visitLogs.count
     }
 
-    var lastVisitDate: Date? {
+    var firstVisitDate: Date? {
         return visitLogs.sorted(byKeyPath: "date", ascending: false).first?.date
+    }
+
+    var lastVisitDate: Date? {
+        return visitLogs.sorted(byKeyPath: "date", ascending: false).last?.date
     }
 
     func getDisplayImage(forGalleryMode: Bool) -> UIImage? {
