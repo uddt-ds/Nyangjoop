@@ -14,7 +14,6 @@ final class LogViewController: BaseViewController {
     private let viewModel = LogViewModel()
 
     private let viewWillAppearSubject = PublishSubject<Void>()
-    private let catSelectedSubject = PublishSubject<Cat?>()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -59,9 +58,9 @@ final class LogViewController: BaseViewController {
     private let addLogButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "pencil"), for: .normal)
-        button.backgroundColor = .systemBlue
+        button.backgroundColor = .retroBlue
         button.tintColor = .white
-        button.layer.cornerRadius = 28
+        button.layer.cornerRadius = 22
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 8
@@ -71,7 +70,6 @@ final class LogViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupCollectionViews()
         bind()
     }
     
@@ -107,17 +105,9 @@ final class LogViewController: BaseViewController {
 
         addLogButton.snp.makeConstraints { make in
             make.trailing.equalToSuperview().offset(-20)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-80)
-            make.size.equalTo(56)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-40)
+            make.size.equalTo(44)
         }
-    }
-
-    private func setupCollectionViews() {
-        catSelectionCollectionView.delegate = self
-        catSelectionCollectionView.dataSource = self
-
-        logCollectionView.delegate = self
-        logCollectionView.dataSource = self
     }
 
     private func createGridLayout() -> UICollectionViewLayout {
@@ -148,24 +138,36 @@ final class LogViewController: BaseViewController {
 // MARK: Rx binding
 extension LogViewController {
     private func bind() {
+        let catSelected = catSelectionCollectionView.rx.modelSelected(CatWithSelection.self)
+            .map { $0.cat }
+            .asObservable()
+        
         let input = LogViewModel.Input(
             viewDidLoad: .just(()),
             viewWillAppear: viewWillAppearSubject.asObservable(),
-            catSelected: catSelectedSubject.asObservable(),
+            catSelected: catSelected,
             addLogButtonTapped: addLogButton.rx.tap.asObservable()
         )
 
         let output = viewModel.transform(input)
 
-        output.cats
-            .drive(with: self) { owner, _ in
-                owner.catSelectionCollectionView.reloadData()
+        // 고양이 선택 CollectionView 바인딩
+        output.catsWithSelection
+            .drive(catSelectionCollectionView.rx.items(
+                cellIdentifier: CatSelectionCell.identifier,
+                cellType: CatSelectionCell.self
+            )) { index, item, cell in
+                cell.configure(with: item.cat, isSelected: item.isSelected)
             }
             .disposed(by: disposeBag)
 
+        // 방문 기록 CollectionView 바인딩
         output.visitLogs
-            .drive(with: self) { owner, _ in
-                owner.logCollectionView.reloadData()
+            .drive(logCollectionView.rx.items(
+                cellIdentifier: LogRecordCell.identifier,
+                cellType: LogRecordCell.self
+            )) { index, visitLog, cell in
+                cell.configure(with: visitLog)
             }
             .disposed(by: disposeBag)
 
@@ -182,39 +184,5 @@ extension LogViewController {
         let nav = UINavigationController(rootViewController: logRecordVC)
         nav.modalPresentationStyle = .formSheet
         present(nav, animated: true)
-    }
-}
-
-extension LogViewController: UICollectionViewDataSource, UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if collectionView == catSelectionCollectionView {
-            return viewModel.numberOfCats
-        } else {
-            return viewModel.numberOfVisitLogs
-        }
-    }
-
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if collectionView == catSelectionCollectionView {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CatSelectionCell.identifier, for: indexPath) as? CatSelectionCell else { return .init() }
-            let cat = viewModel.cat(at: indexPath.item)
-            let isSelected = viewModel.isSelectedCat(at: indexPath.item)
-            cell.configure(with: cat, isSelected: isSelected)
-            return cell
-        } else {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LogRecordCell.identifier, for: indexPath) as? LogRecordCell else { return .init() }
-            let visitLog = viewModel.visitLog(at: indexPath.item)
-            cell.configure(with: visitLog)
-            return cell
-        }
-
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if collectionView == catSelectionCollectionView {
-            let selectedCat = viewModel.cat(at: indexPath.item)
-            catSelectedSubject.onNext(selectedCat)
-            collectionView.reloadData()
-        }
     }
 }

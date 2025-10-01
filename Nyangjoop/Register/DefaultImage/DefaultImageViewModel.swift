@@ -9,6 +9,12 @@ import UIKit
 import RxSwift
 import RxCocoa
 
+// 이미지와 선택 상태를 포함한 모델
+struct DefaultImageItem {
+    let imageName: String
+    let isSelected: Bool
+}
+
 final class DefaultImageViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
 
@@ -19,71 +25,61 @@ final class DefaultImageViewModel: ViewModelProtocol {
     }
 
     struct Output {
-        let imageNames: Driver<[String]>
-        let selectedIndex: Driver<Int?>
+        let imageItems: Driver<[DefaultImageItem]>
         let isSelectButtonEnabled: Driver<Bool>
-        let selectedImage: Driver<UIImage>
+        let selectedImage: Driver<(image: UIImage, imageName: String)>
     }
 
     private let imageNames = DefaultCatImages.imageNames
-
     private let selectedIndexRelay = BehaviorRelay<Int?>(value: nil)
 
-    var numberOfImages: Int {
-        return imageNames.count
-    }
-
-    func imageName(at index: Int) -> String {
-        return imageNames[index]
-    }
-
-    func isSelected(at index: Int) -> Bool {
-        return selectedIndexRelay.value == index
-    }
-
     func transform(_ input: Input) -> Output {
-        let imageNamesDriver = input.viewDidLoad
-            .map { [weak self] _ in
-                return self?.imageNames ?? []
-            }
-            .asDriver(onErrorJustReturn: [])
-
+        // 이미지 선택 처리
         input.imageSelected
             .do(onNext: { index in
-                print("선택된 인덱스 \(index)")
+                print("선택된 인덱스: \(index)")
             })
             .bind(to: selectedIndexRelay)
             .disposed(by: disposeBag)
 
-        let selectedIndex = selectedIndexRelay
-            .asDriver(onErrorJustReturn: nil)
+        // 이미지 아이템 목록 (이미지명 + 선택 상태)
+        let imageItems = selectedIndexRelay
+            .map { [weak self] selectedIndex -> [DefaultImageItem] in
+                guard let self = self else { return [] }
+                
+                return self.imageNames.enumerated().map { index, imageName in
+                    DefaultImageItem(
+                        imageName: imageName,
+                        isSelected: selectedIndex == index
+                    )
+                }
+            }
+            .asDriver(onErrorJustReturn: [])
 
+        // 선택 버튼 활성화 여부
         let isSelectButtonEnabled = selectedIndexRelay
             .map { $0 != nil }
             .asDriver(onErrorJustReturn: false)
 
+        // 선택 완료 시 이미지와 이름 전달 (레이블 명시)
         let selectedImage = input.selectedButtonTapped
             .withLatestFrom(selectedIndexRelay.asObservable())
-            .compactMap { [weak self] selectedIndex -> UIImage? in
-                guard let self, let index = selectedIndex,
+            .compactMap { [weak self] selectedIndex -> (image: UIImage, imageName: String)? in
+                guard let self = self,
+                      let index = selectedIndex,
                       index < self.imageNames.count else { return nil }
 
-
                 let imageName = self.imageNames[index]
-                return UIImage(named: imageName) ?? UIImage(named: "cat.fill")!
+                let image = UIImage(named: imageName) ?? UIImage(systemName: "cat.fill")!
+                
+                return (image: image, imageName: imageName)
             }
-            .asDriver(onErrorJustReturn: UIImage())
+            .asDriver(onErrorJustReturn: (image: UIImage(), imageName: ""))
 
-        return Output(imageNames: imageNamesDriver,
-                      selectedIndex: selectedIndex,
-                      isSelectButtonEnabled: isSelectButtonEnabled,
-                      selectedImage: selectedImage)
-    }
-
-    func getCurrentSelectedImageName() -> String? {
-        guard let selectedIndex = selectedIndexRelay.value,
-              selectedIndex < imageNames.count else { return nil }
-        return imageNames[selectedIndex]
+        return Output(
+            imageItems: imageItems,
+            isSelectButtonEnabled: isSelectButtonEnabled,
+            selectedImage: selectedImage
+        )
     }
 }
-

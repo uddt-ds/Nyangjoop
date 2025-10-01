@@ -9,6 +9,12 @@ import Foundation
 import RxSwift
 import RxCocoa
 
+// 고양이 선택 상태를 포함한 모델
+struct CatWithSelection {
+    let cat: Cat?  // nil이면 "전체"
+    let isSelected: Bool
+}
+
 final class LogViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
     private let realmManager = RealmManager.shared
@@ -21,40 +27,14 @@ final class LogViewModel: ViewModelProtocol {
     }
 
     struct Output {
-        let cats: Driver<[Cat]>
+        let catsWithSelection: Driver<[CatWithSelection]>
         let visitLogs: Driver<[VisitLog]>
-        let selectedCat: Driver<Cat?>
         let presentLogRecord: Driver<Cat?>
     }
 
     private let catsRelay = BehaviorRelay<[Cat]>(value: [])
     private let visitLogRelay = BehaviorRelay<[VisitLog]>(value: [])
     private let selectedCatRelay = BehaviorRelay<Cat?>(value: nil)
-
-    var numberOfCats: Int {
-        return catsRelay.value.count + 1  // "전체" 포함
-    }
-
-    var numberOfVisitLogs: Int {
-        return visitLogRelay.value.count
-    }
-
-    func cat(at index: Int) -> Cat? {
-        if index == 0 { return nil }  // "전체"는 nil로 표현
-        return catsRelay.value[index - 1]
-    }
-
-    func visitLog(at index: Int) -> VisitLog {
-        return visitLogRelay.value[index]
-    }
-
-    func isSelectedCat(at index: Int) -> Bool {
-        if index == 0 {
-            return selectedCatRelay.value == nil  // "전체"가 선택되었는지
-        }
-        guard let selectedCat = selectedCatRelay.value else { return false }
-        return catsRelay.value[index - 1].id == selectedCat.id
-    }
 
     func transform(_ input: Input) -> Output {
         // viewDidLoad와 viewWillAppear 둘 다에서 데이터 로드
@@ -65,6 +45,7 @@ final class LogViewModel: ViewModelProtocol {
             }
             .disposed(by: disposeBag)
 
+        // 고양이 선택 시 처리
         input.catSelected
             .do { [weak self] cat in
                 guard let self else { return }
@@ -75,15 +56,40 @@ final class LogViewModel: ViewModelProtocol {
             }
             .disposed(by: disposeBag)
 
+        // 고양이 목록과 선택 상태를 결합
+        let catsWithSelection = Observable.combineLatest(
+            catsRelay.asObservable(),
+            selectedCatRelay.asObservable()
+        )
+        .map { cats, selectedCat -> [CatWithSelection] in
+            // "전체" 항목 추가
+            var result: [CatWithSelection] = [
+                CatWithSelection(cat: nil, isSelected: selectedCat == nil)
+            ]
+            
+            // 각 고양이와 선택 상태 추가
+            let catItems = cats.map { cat in
+                CatWithSelection(
+                    cat: cat,
+                    isSelected: selectedCat?.id == cat.id
+                )
+            }
+            result.append(contentsOf: catItems)
+            
+            return result
+        }
+        .asDriver(onErrorJustReturn: [])
+
+        // 로그 추가 버튼 탭 시 선택된 고양이 전달
         let presentLogRecord = input.addLogButtonTapped
             .withLatestFrom(selectedCatRelay.asObservable())
             .asDriver(onErrorJustReturn: nil)
 
-        return Output(cats: catsRelay.asDriver(),
-                      visitLogs: visitLogRelay.asDriver(),
-                      selectedCat: selectedCatRelay.asDriver(),
-                      presentLogRecord: presentLogRecord)
-
+        return Output(
+            catsWithSelection: catsWithSelection,
+            visitLogs: visitLogRelay.asDriver(),
+            presentLogRecord: presentLogRecord
+        )
     }
 
     private func loadCats() {
@@ -95,12 +101,11 @@ final class LogViewModel: ViewModelProtocol {
            !cats.contains(where: { $0.id == currentSelectedCat.id }) {
             selectedCatRelay.accept(nil)  // "전체"로 설정
         }
-        
-        // 처음 로드 시 "전체" 선택 (nil이면 이미 "전체"가 선택된 상태)
     }
 
     private func loadAllVisitLogs() {
         let visitLogs = Array(realmManager.fetchAllVisitLogs())
+            .sorted { $0.date > $1.date }
         visitLogRelay.accept(visitLogs)
     }
 
@@ -110,8 +115,8 @@ final class LogViewModel: ViewModelProtocol {
             return
         }
 
-        let visitLogs = Array(cat.visitLogs).sorted { $0.date > $1.date }
+        let visitLogs = Array(cat.visitLogs)
+            .sorted { $0.date > $1.date }
         visitLogRelay.accept(visitLogs)
     }
-
 }

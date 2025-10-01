@@ -17,15 +17,11 @@ final class DefaultImageViewController: BaseViewController {
     weak var delegate: DefaultImageDelegate?
 
     private var disposeBag = DisposeBag()
-
     private let viewModel = DefaultImageViewModel()
-    private let imageSelectedSubject = PublishSubject<Int>()
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: createCompositionalLayout())
         collectionView.backgroundColor = .systemBackground
-        collectionView.delegate = self
-        collectionView.dataSource = self
         collectionView.allowsSelection = true
         collectionView.register(DefaultImageCell.self, forCellWithReuseIdentifier: DefaultImageCell.identifier)
         return collectionView
@@ -102,7 +98,6 @@ final class DefaultImageViewController: BaseViewController {
             make.height.equalTo(500)
         }
 
-        // 기존 레이아웃을 컨테이너 기준으로 변경
         collectionView.snp.remakeConstraints { make in
             make.top.equalToSuperview().offset(60)
             make.leading.trailing.equalToSuperview().inset(20)
@@ -126,25 +121,30 @@ final class DefaultImageViewController: BaseViewController {
 //MARK: Rx binding
 extension DefaultImageViewController {
     private func bind() {
+        // CollectionView의 아이템 선택을 Observable로
+        let imageSelected = collectionView.rx.itemSelected
+            .map { $0.item }
+            .asObservable()
+        
         let input = DefaultImageViewModel.Input(
             viewDidLoad: .just(()),
-            imageSelected: imageSelectedSubject.asObservable(),
-            selectedButtonTapped: selectButton.rx.tap.asObservable())
+            imageSelected: imageSelected,
+            selectedButtonTapped: selectButton.rx.tap.asObservable()
+        )
 
         let output = viewModel.transform(input)
 
-        output.imageNames
-            .drive(with: self) { owner, _ in
-                owner.collectionView.reloadData()
+        // CollectionView에 데이터 바인딩 (Reactive)
+        output.imageItems
+            .drive(collectionView.rx.items(
+                cellIdentifier: DefaultImageCell.identifier,
+                cellType: DefaultImageCell.self
+            )) { index, item, cell in
+                cell.configure(imageName: item.imageName, isSelected: item.isSelected)
             }
             .disposed(by: disposeBag)
 
-        output.selectedIndex
-            .drive(with: self) { owner, _ in
-                owner.collectionView.reloadData()
-            }
-            .disposed(by: disposeBag)
-
+        // 선택 버튼 활성화 상태
         output.isSelectButtonEnabled
             .drive(with: self) { owner, isEnabled in
                 owner.selectButton.isEnabled = isEnabled
@@ -152,40 +152,19 @@ extension DefaultImageViewController {
             }
             .disposed(by: disposeBag)
 
+        // 선택 완료 시 delegate 호출 및 화면 닫기
         output.selectedImage
-            .drive(with: self) { owner, image in
-                if let imageName = owner.viewModel.getCurrentSelectedImageName() {
-                    owner.delegate?.didSelectDefaultImage(image, imageName: imageName)
-                }
+            .drive(with: self) { owner, result in
+                owner.delegate?.didSelectDefaultImage(result.image, imageName: result.imageName)
                 owner.dismiss(animated: true)
             }
             .disposed(by: disposeBag)
 
+        // 닫기 버튼
         closeButton.rx.tap
             .subscribe(with: self) { owner, _ in
                 owner.dismiss(animated: true)
             }
             .disposed(by: disposeBag)
-    }
-}
-
-extension DefaultImageViewController: UICollectionViewDelegate, UICollectionViewDataSource {
-
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        imageSelectedSubject.onNext(indexPath.item)
-    }
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        viewModel.numberOfImages
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DefaultImageCell.identifier, for: indexPath) as? DefaultImageCell else { return .init() }
-
-        let imageName = viewModel.imageName(at: indexPath.item)
-        let isSelected = viewModel.isSelected(at: indexPath.item)
-        cell.configure(imageName: imageName, isSelected: isSelected)
-
-        return cell
     }
 }
