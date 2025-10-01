@@ -28,12 +28,19 @@ final class HomeViewController: BaseViewController {
     private var currentCats: [Cat] = []
     private var isShowingGalleryMarkers = false
     private var isShowingStores = false
+    private var currentCalloutView: CatCalloutView?
+    private var selectedCat: Cat?
+
+    // 클러스터링 제어
+    private let clusteringThresholdZoom: Double = 0.015
+    private var lastClusteringState: Bool = false
+    private var isUpdatingAnnotations = false
 
     private let mapView: MKMapView = {
         let mapView = MKMapView()
         mapView.showsUserLocation = true
         mapView.userTrackingMode = .none
-        mapView.showsCompass = false  // 나침반 숨기기
+        mapView.showsCompass = false
         return mapView
     }()
 
@@ -80,6 +87,7 @@ final class HomeViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
+        setupTapGesture()
         bind()
     }
 
@@ -142,7 +150,9 @@ extension HomeViewController {
     private func setupMapView() {
         mapView.delegate = self
         mapView.setToDefaultLoction()
+        
         mapView.register(CatAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatAnnotationView.identifier)
+        mapView.register(CatClusterAnnotationView.self, forAnnotationViewWithReuseIdentifier: CatClusterAnnotationView.identifier)
         mapView.register(MarketAnnotationView.self, forAnnotationViewWithReuseIdentifier: MarketAnnotationView.identifier)
 
         let standardConfig = MKStandardMapConfiguration()
@@ -159,6 +169,34 @@ extension HomeViewController {
         ])
 
         mapView.preferredConfiguration = standardConfig
+    }
+    
+    private func setupTapGesture() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(mapViewTapped))
+        tapGesture.delegate = self
+        tapGesture.cancelsTouchesInView = false
+        mapView.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func mapViewTapped(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: mapView)
+        let coordinate = mapView.convert(location, toCoordinateFrom: mapView)
+        
+        print("Map tapped at: \(location)")
+        
+        let touchedAnnotations = mapView.annotations(in: mapView.visibleMapRect).filter { annotation in
+            guard let catAnnotation = annotation as? CatAnnotation else { return false }
+            let annotationPoint = mapView.convert(catAnnotation.coordinate, toPointTo: mapView)
+            let distance = hypot(annotationPoint.x - location.x, annotationPoint.y - location.y)
+            return distance < 30
+        }
+        
+        print("Touched annotations count: \(touchedAnnotations.count)")
+        
+        if touchedAnnotations.isEmpty {
+            print("Removing callout - empty area tapped")
+            removeCurrentCalloutView()
+        }
     }
 }
 
@@ -280,6 +318,8 @@ extension HomeViewController {
         currentCats = cats
         let catAnnotations = cats.map { CatAnnotation(cat: $0) }
         mapView.addAnnotations(catAnnotations)
+
+        print("고양이 마커 업데이트: \(cats.count)마리")
     }
 
     private func updateCatMarkerImages() {
@@ -302,25 +342,65 @@ extension HomeViewController {
     }
 
     private func showCatDetailAlert(_ cat: Cat) {
-         let alert = UIAlertController(
-             title: cat.name,
-             message: "이 고양이와 관련된 작업을 선택해주세요.",
-             preferredStyle: .actionSheet
-         )
-
-         alert.addAction(UIAlertAction(title: "길찾기", style: .default) { [weak self] _ in
-             guard let self else { return }
-             self.showDirections(to: cat)
-         })
-
-         alert.addAction(UIAlertAction(title: "고양이 정보 보기", style: .default) { _ in
-             print("고양이 정보 보기 - \(cat.name)")
-         })
-
-         alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-
-         present(alert, animated: true)
-     }
+        selectedCat = cat
+        showCalloutView(for: cat)
+    }
+    
+    private func showCalloutView(for cat: Cat) {
+        print("showCalloutView called for: \(cat.name)")
+        removeCurrentCalloutView()
+        
+        guard let catAnnotation = mapView.annotations.compactMap({ $0 as? CatAnnotation }).first(where: { $0.cat.id == cat.id }) else {
+            print("어노테이션을 찾을 수 없음")
+            return
+        }
+        
+        let calloutView = CatCalloutView()
+        calloutView.delegate = self
+        calloutView.configure(with: cat.name)
+        
+        view.addSubview(calloutView)
+        print("Callout view added to view hierarchy")
+        
+        let annotationPoint = mapView.convert(catAnnotation.coordinate, toPointTo: view)
+        print("Annotation point: \(annotationPoint)")
+        
+        calloutView.snp.makeConstraints { make in
+            make.centerX.equalTo(view.snp.leading).offset(annotationPoint.x)
+            make.bottom.equalTo(view.snp.top).offset(annotationPoint.y - 60)
+            make.width.equalTo(200)
+        }
+        
+        view.layoutIfNeeded()
+        print("Callout frame after layout: \(calloutView.frame)")
+        
+        calloutView.alpha = 0
+        calloutView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
+            calloutView.alpha = 1
+            calloutView.transform = .identity
+            print("Animation started")
+        } completion: { _ in
+            print("Animation completed")
+        }
+        
+        currentCalloutView = calloutView
+    }
+    
+    private func removeCurrentCalloutView() {
+        guard let callout = currentCalloutView else { return }
+        print("removeCurrentCalloutView called")
+        
+        UIView.animate(withDuration: 0.2) {
+            callout.alpha = 0
+            callout.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        } completion: { _ in
+            callout.removeFromSuperview()
+            self.currentCalloutView = nil
+            print("Callout removed")
+        }
+    }
 
     private func pushProfile() {
         let profileVC = ProfileViewController()
@@ -330,38 +410,143 @@ extension HomeViewController {
 
 extension HomeViewController: MKMapViewDelegate {
 
-    func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
-        // 사용자 위치
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
         if annotation is MKUserLocation {
             return nil
         }
 
-        // 고양이 마커
-        if let catAnnotation = annotation as? CatAnnotation {
-            let annotationView = mapView.dequeueReusableAnnotationView(
-                withIdentifier: CatAnnotationView.identifier,
-                for: annotation
-            ) as! CatAnnotationView
-            annotationView.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
-            return annotationView
+        if let clusterAnnotation = annotation as? MKClusterAnnotation {
+            let view = mapView.dequeueReusableAnnotationView(
+                withIdentifier: CatClusterAnnotationView.identifier
+            ) as? CatClusterAnnotationView
+            ?? CatClusterAnnotationView(annotation: clusterAnnotation,
+                                        reuseIdentifier: CatClusterAnnotationView.identifier)
+            view.configure(with: clusterAnnotation)
+            return view
         }
 
-        // 마켓 마커
-        if annotation is MarketAnnotation {
-            let annotationView = mapView.dequeueReusableAnnotationView(
-                withIdentifier: MarketAnnotationView.identifier,
-                for: annotation
-            ) as! MarketAnnotationView
+        if let catAnnotation = annotation as? CatAnnotation {
+            let view = mapView.dequeueReusableAnnotationView(
+                withIdentifier: CatAnnotationView.identifier
+            ) as? CatAnnotationView ?? CatAnnotationView(
+                annotation: catAnnotation,
+                reuseIdentifier: CatAnnotationView.identifier
+            )
+
+            view.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
             
-            return annotationView
+            // 지도 줌 레벨에 따라 클러스터링 제어
+            let currentZoom = mapView.region.span.latitudeDelta
+            let shouldEnableClustering = currentZoom > clusteringThresholdZoom
+            
+            if shouldEnableClustering {
+                view.clusteringIdentifier = "catCluster"
+            } else {
+                view.clusteringIdentifier = nil
+            }
+
+            return view
+        }
+
+        if let marketAnnotation = annotation as? MarketAnnotation {
+            let view = mapView.dequeueReusableAnnotationView(
+                withIdentifier: MarketAnnotationView.identifier
+            ) as? MarketAnnotationView
+            ?? MarketAnnotationView(annotation: marketAnnotation,
+                                    reuseIdentifier: MarketAnnotationView.identifier)
+            return view
         }
 
         return nil
     }
 
+    // 지도 영역 변경 시 annotation 갱신 - 깜빡임 방지
+    func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+        removeCurrentCalloutView()
+    }
+    
+    func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+        // 이미 업데이트 중이면 무시
+        guard !isUpdatingAnnotations else { return }
+        
+        let currentZoom = mapView.region.span.latitudeDelta
+        let shouldEnableClustering = currentZoom > clusteringThresholdZoom
+        
+        // 클러스터링 상태가 변경되었을 때만 업데이트
+        guard shouldEnableClustering != lastClusteringState else { return }
+        
+        print("줌레벨: \(String(format: "%.4f", currentZoom)), 클러스터링: \(shouldEnableClustering ? "ON" : "OFF")")
+        
+        lastClusteringState = shouldEnableClustering
+        isUpdatingAnnotations = true
+        
+        // annotation을 제거하고 다시 추가해야 클러스터링이 적용됨
+        let catAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
+        
+        if !catAnnotations.isEmpty {
+            mapView.removeAnnotations(catAnnotations)
+            
+            // 즉시 다시 추가 (대기 시간 최소화)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                mapView.addAnnotations(catAnnotations)
+                
+                // 업데이트 완료 후 플래그 해제 (짧은 대기 시간)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self.isUpdatingAnnotations = false
+                }
+            }
+        } else {
+            isUpdatingAnnotations = false
+        }
+    }
+
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        // 클러스터를 선택하면 확대
+        if let clusterAnnotation = view.annotation as? MKClusterAnnotation {
+            removeCurrentCalloutView()
+            let memberAnnotations = clusterAnnotation.memberAnnotations
+            let coordinates = memberAnnotations.compactMap { $0.coordinate }
+            
+            if coordinates.count > 0 {
+                var region = MKCoordinateRegion()
+                
+                // 모든 annotation을 포함하는 영역 계산
+                var minLat = coordinates[0].latitude
+                var maxLat = coordinates[0].latitude
+                var minLon = coordinates[0].longitude
+                var maxLon = coordinates[0].longitude
+                
+                for coordinate in coordinates {
+                    minLat = min(minLat, coordinate.latitude)
+                    maxLat = max(maxLat, coordinate.latitude)
+                    minLon = min(minLon, coordinate.longitude)
+                    maxLon = max(maxLon, coordinate.longitude)
+                }
+                
+                region.center.latitude = (minLat + maxLat) / 2
+                region.center.longitude = (minLon + maxLon) / 2
+                region.span.latitudeDelta = (maxLat - minLat) * 1.5
+                region.span.longitudeDelta = (maxLon - minLon) * 1.5
+                
+                mapView.setRegion(region, animated: true)
+            }
+            
+            mapView.deselectAnnotation(clusterAnnotation, animated: false)
+            return
+        }
+        
+        // 개별 고양이 선택
         if let catAnnotation = view.annotation as? CatAnnotation {
-            catAnnotationTappedSubject.onNext(catAnnotation.cat)
+            // 이미 선택된 고양이를 다시 누르면 callout 닫기
+            if let selectedCat = selectedCat, selectedCat.id == catAnnotation.cat.id, currentCalloutView != nil {
+                removeCurrentCalloutView()
+                self.selectedCat = nil
+            } else {
+                removeCurrentCalloutView()
+                catAnnotationTappedSubject.onNext(catAnnotation.cat)
+            }
+            mapView.deselectAnnotation(catAnnotation, animated: false)
         }
     }
 
@@ -374,6 +559,26 @@ extension HomeViewController: MKMapViewDelegate {
         }
 
         return MKOverlayRenderer(overlay: overlay)
+    }
+}
+
+extension HomeViewController: CatCalloutViewDelegate {
+    func calloutViewDidTapDirections() {
+        guard let cat = selectedCat else { return }
+        removeCurrentCalloutView()
+        showDirections(to: cat)
+    }
+    
+    func calloutViewDidTapInfo() {
+        guard let cat = selectedCat else { return }
+        removeCurrentCalloutView()
+        print("고양이 정보 보기 - \(cat.name)")
+    }
+}
+
+extension HomeViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
 }
 
@@ -464,7 +669,17 @@ extension HomeViewController {
 
     private func clearRoute() {
         mapView.removeOverlays(mapView.overlays)
-        mapView.setToDefaultLoction(animated: true)
+        
+        locationManager.getCurrentLocation()
+            .observe(on: MainScheduler.instance)
+            .subscribe { [weak self] currentLocation in
+                guard let self else { return }
+                self.moveToLocation(currentLocation)
+            } onFailure: { [weak self] _ in
+                guard let self else { return }
+                self.mapView.setToDefaultLoction(animated: true)
+            }
+            .disposed(by: disposeBag)
     }
 
     private func formatTravelTime(_ timeInterval: TimeInterval) -> String {

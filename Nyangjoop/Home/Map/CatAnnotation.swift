@@ -30,6 +30,7 @@ final class CatAnnotation: NSObject, MKAnnotation {
     }
 }
 
+// MARK: - CatAnnotationView
 final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
 
     private let bubbleContainerView: UIView = {
@@ -66,14 +67,23 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
 
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        configureHierarchy()
-        configureLayout()
-        setupBubbleTail()
+        setupView()
     }
 
     @available(*, unavailable)
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
+    }
+    
+    private func setupView() {
+        // 클러스터링 식별자는 나중에 동적으로 설정
+        // displayPriority와 collisionMode 설정
+        displayPriority = .defaultHigh
+        collisionMode = .circle
+        
+        configureHierarchy()
+        configureLayout()
+        setupBubbleTail()
     }
 
     private func configureHierarchy() {
@@ -89,7 +99,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
             make.size.equalTo(50)
         }
 
-        // 말풍선 컨테이너 (갤러리 모드)
         bubbleContainerView.snp.makeConstraints { make in
             make.top.centerX.equalToSuperview()
             make.size.equalTo(CGSize(width: 80, height: 65))
@@ -100,7 +109,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
             make.size.equalTo(CGSize(width: 70, height: 45))
         }
 
-        // 말풍선 꼬리
         bubbleTailView.snp.makeConstraints { make in
             make.top.equalTo(bubbleContainerView.snp.bottom)
             make.centerX.equalTo(bubbleContainerView)
@@ -130,7 +138,7 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         super.layoutSubviews()
 
         if isShowingPhoto {
-            self.frame = CGRect(x: 0, y: 0, width: 80, height: 65)
+            self.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
         } else {
             self.frame = CGRect(x: 0, y: 0, width: 50, height: 50)
         }
@@ -142,11 +150,11 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         super.prepareForReuse()
         catImageView.image = nil
         bubbleImageView.image = nil
+        // 클러스터링 식별자는 매번 새로 설정되므로 초기화 불필요
     }
 
     func configure(with cat: Cat, showGalleryImage: Bool) {
         if showGalleryImage {
-            // 갤러리 모드: 실제 사진이 있으면 사진, 없으면 noImage
             isShowingPhoto = true
             bounds = CGRect(x: 0, y: 0, width: 80, height: 80)
             if !cat.visitLogs.isEmpty, let filePath = cat.visitLogs.first?.filePath, !filePath.isEmpty {
@@ -157,7 +165,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
                 bubbleImageView.image = UIImage(named: "noImage")
             }
         } else {
-            // 기본 모드: 저장된 drawImage 사용
             isShowingPhoto = false
             bounds = CGRect(x: 0, y: 0, width: 50, height: 50)
             showDirectImageMode()
@@ -168,7 +175,6 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     }
 
     private func loadCatImage(from imagePath: String, into imageView: UIImageView) {
-        // Documents 디렉토리 경로 가져오기
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fullPath = documentsPath.appendingPathComponent(imagePath).path
 
@@ -194,4 +200,117 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     }
 }
 
-
+// MARK: - CatClusterAnnotationView
+final class CatClusterAnnotationView: MKAnnotationView, IdentifierProtocol {
+    
+    // 배경 원형 컨테이너
+    private let containerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemOrange
+        return view
+    }()
+    
+    // 발자국 아이콘 이미지뷰
+    private let pawImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        let config = UIImage.SymbolConfiguration(pointSize: 30, weight: .bold)
+        imageView.image = UIImage(systemName: "pawprint.fill", withConfiguration: config)
+        imageView.tintColor = .white
+        return imageView
+    }()
+    
+    // 숫자 표시 레이블
+    private let countLabel: UILabel = {
+        let label = UILabel()
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 14, weight: .heavy)
+        label.textColor = .systemOrange
+        label.backgroundColor = .white
+        label.layer.cornerRadius = 10
+        label.clipsToBounds = true
+        return label
+    }()
+    
+    override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        setupClusterView()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        setupClusterView()
+    }
+    
+    private func setupClusterView() {
+        displayPriority = .defaultHigh
+        collisionMode = .circle
+        
+        addSubview(containerView)
+        containerView.addSubview(pawImageView)
+        containerView.addSubview(countLabel)
+        
+        containerView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        pawImageView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.size.equalTo(35)
+        }
+        
+        countLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(4)
+            make.trailing.equalToSuperview().offset(-4)
+            make.width.greaterThanOrEqualTo(20)
+            make.height.equalTo(20)
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        countLabel.text = nil
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        containerView.layer.cornerRadius = bounds.width / 2
+    }
+    
+    func configure(with clusterAnnotation: MKClusterAnnotation) {
+        let count = clusterAnnotation.memberAnnotations.count
+        countLabel.text = "\(count)"
+        
+        // 개수에 따라 크기 조정
+        let size: CGFloat
+        let pawSize: CGFloat
+        let fontSize: CGFloat
+        
+        switch count {
+        case 2...9:
+            size = 60
+            pawSize = 30
+            fontSize = 14
+        case 10...99:
+            size = 70
+            pawSize = 35
+            fontSize = 15
+        default:
+            size = 80
+            pawSize = 40
+            fontSize = 16
+        }
+        
+        // 아이콘 크기 조정
+        let config = UIImage.SymbolConfiguration(pointSize: pawSize, weight: .bold)
+        pawImageView.image = UIImage(systemName: "pawprint.fill", withConfiguration: config)
+        
+        // 폰트 크기 조정
+        countLabel.font = .systemFont(ofSize: fontSize, weight: .heavy)
+        
+        bounds = CGRect(x: 0, y: 0, width: size, height: size)
+        centerOffset = CGPoint(x: 0, y: -size / 2)
+        
+        setNeedsLayout()
+    }
+}
