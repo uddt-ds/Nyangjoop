@@ -51,6 +51,30 @@ final class LogRecordViewModel: ViewModelProtocol {
                 owner.currentLocation = coordinate
             }
             .disposed(by: disposeBag)
+        
+        // 사진 선택 시 GPS 메타데이터가 없으면 현재 위치 가져오기
+        input.photoSelected
+            .filter { [weak self] _ in
+                // currentLocation이 아직 없거나 기본 위치인 경우
+                guard let self else { return false }
+                return self.currentLocation == nil || 
+                       (self.currentLocation?.latitude == AppLocationConfig.defaultCoordinate.latitude &&
+                        self.currentLocation?.longitude == AppLocationConfig.defaultCoordinate.longitude)
+            }
+            .flatMap { [weak self] _ -> Observable<CLLocation> in
+                guard let self else { return Observable.empty() }
+                return self.locationManager.getCurrentLocation().asObservable()
+                    .catch { _ in
+                        let defaultLocation = CLLocation(latitude: AppLocationConfig.defaultCoordinate.latitude,
+                                                         longitude: AppLocationConfig.defaultCoordinate.longitude)
+                        return Observable.just(defaultLocation)
+                    }
+            }
+            .subscribe(with: self) { owner, location in
+                print("사진 촬영 후 현재 위치 가져오기: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                owner.currentLocation = location.coordinate
+            }
+            .disposed(by: disposeBag)
 
         input.viewDidLoad
             .flatMap { [weak self] _ -> Observable<CLLocation> in

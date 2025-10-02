@@ -144,6 +144,7 @@ final class LogRecordViewController: BaseViewController {
         super.viewDidLoad()
         bind()
         setupNavigationBar()
+        setupKeyboardDismiss()
 
         updateCatSelectionUI()
     }
@@ -255,6 +256,16 @@ final class LogRecordViewController: BaseViewController {
                                                            action: #selector(closeButtonTapped))
 
         navigationItem.leftBarButtonItem?.tintColor = .systemGray
+    }
+    
+    private func setupKeyboardDismiss() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 
     @objc private func closeButtonTapped() {
@@ -368,16 +379,16 @@ extension LogRecordViewController {
     private func showSaveSuccessAlert() {
         let alert = UIAlertController(
             title: "등록 완료",
-            message: "기록이 성공적으로 저장되었습니다!",  // 메시지 수정
+            message: "기록이 성공적으로 저장되었습니다!",
             preferredStyle: .alert
         )
 
         alert.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
             guard let self else { return }
-            if self.navigationController != nil {
-                self.navigationController?.popViewController(animated: true)
+            if let presentingVC = self.presentingViewController {
+                presentingVC.dismiss(animated: true)
             } else {
-                self.dismiss(animated: true)
+                self.navigationController?.popViewController(animated: true)
             }
         })
 
@@ -503,5 +514,13 @@ extension LogRecordViewController: UITextViewDelegate {
 
     func textViewDidEndEditing(_ textView: UITextView) {
         memoPlaceholderLabel.isHidden = !textView.text.isEmpty
+    }
+    
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if text == "\n" {
+            textView.resignFirstResponder()
+            return false
+        }
+        return true
     }
 }
