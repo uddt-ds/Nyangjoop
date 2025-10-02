@@ -20,6 +20,7 @@ final class CustomTabBar: UIView {
     private let disposeBag = DisposeBag()
     
     private var isMenuExpanded = false
+    private var isAnimating = false
 
     // 중앙 메인 버튼 (발바닥) - 반원 모양
     private let mainButton: UIButton = {
@@ -205,8 +206,6 @@ final class CustomTabBar: UIView {
         
         mainButton.layer.insertSublayer(shapeLayer, at: 0)
         semiCircleLayer = shapeLayer
-        
-        print("🎨 반원 생성 완료: width=\(width), height=\(height)")
     }
     
     private func createMenuIcon() {
@@ -216,9 +215,7 @@ final class CustomTabBar: UIView {
         
         let width = menuIconView.bounds.width
         let height = menuIconView.bounds.height
-        
-        print("menuIconView size: \(width) x \(height)")
-        
+
         guard width > 0, height > 0 else { return }
         
         let lineWidth: CGFloat = 3
@@ -240,7 +237,6 @@ final class CustomTabBar: UIView {
             menuIconView.layer.addSublayer(line)
         }
         
-        print("햄버거 아이콘 생성 완료")
     }
     
     private func hideMenuIcon() {
@@ -256,49 +252,63 @@ final class CustomTabBar: UIView {
     }
 
     private func configureActions() {
-        // 메인 버튼 - 메뉴 토글만 (움직이지 않음)
         mainButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                print("🐾 메인 버튼 탭")
+                guard !owner.isAnimating else { return }
                 owner.toggleMenu()
             }
             .disposed(by: disposeBag)
 
-        // 홈 버튼
         homeButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                print("🏠 홈 버튼 탭")
+                guard !owner.isAnimating else { return }
                 owner.tabSelectedSubject.onNext(0)
             }
             .disposed(by: disposeBag)
 
-        // 등록 버튼 - 모달이므로 메뉴 유지
         registerButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                print("➕ 등록 버튼 탭")
-                owner.tabSelectedSubject.onNext(1)
+                guard !owner.isAnimating else { return }
+                owner.closeMenuAndSelectTab(1)
             }
             .disposed(by: disposeBag)
 
-        // 로그 버튼
         logButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                print("📝 로그 버튼 탭")
+                guard !owner.isAnimating else { return }
                 owner.tabSelectedSubject.onNext(2)
             }
             .disposed(by: disposeBag)
     }
 
+    private func closeMenuAndSelectTab(_ index: Int) {
+        guard isMenuExpanded else {
+            tabSelectedSubject.onNext(index)
+            return
+        }
+        
+        isAnimating = true
+        hideSubButtons { [weak self] in
+            guard let self else { return }
+            self.showMenuIcon()
+            self.isMenuExpanded = false
+            self.isAnimating = false
+            self.tabSelectedSubject.onNext(index)
+        }
+    }
+    
     private func toggleMenu() {
+        guard !isAnimating else { return }
+        
         isMenuExpanded.toggle()
-        print("📍 메뉴 상태: \(isMenuExpanded ? "열림" : "닫힘")")
+        isAnimating = true
 
         if isMenuExpanded {
             hideMenuIcon()
             showSubButtons()
         } else {
             showMenuIcon()
-            hideSubButtons()
+            hideSubButtons(completion: nil)
         }
     }
 
@@ -306,31 +316,49 @@ final class CustomTabBar: UIView {
         let buttons = [homeButton, registerButton, logButton]
         
         for (index, button) in buttons.enumerated() {
+            let delay = Double(index) * 0.08
+            let isLastButton = index == buttons.count - 1
+            
             UIView.animate(
                 withDuration: 0.5,
-                delay: Double(index) * 0.08,
+                delay: delay,
                 usingSpringWithDamping: 0.6,
                 initialSpringVelocity: 0.8,
-                options: .curveEaseOut
-            ) {
-                button.alpha = 1
-                button.transform = .identity
-            }
+                options: .curveEaseOut,
+                animations: {
+                    button.alpha = 1
+                    button.transform = .identity
+                },
+                completion: { [weak self] _ in
+                    if isLastButton {
+                        self?.isAnimating = false
+                    }
+                }
+            )
         }
     }
 
-    private func hideSubButtons() {
+    private func hideSubButtons(completion: (() -> Void)?) {
         let buttons = [homeButton, registerButton, logButton]
+        var completedCount = 0
         
         for button in buttons.reversed() {
             UIView.animate(
                 withDuration: 0.3,
                 delay: 0,
-                options: .curveEaseIn
-            ) {
-                button.alpha = 0
-                button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
-            }
+                options: .curveEaseIn,
+                animations: {
+                    button.alpha = 0
+                    button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
+                },
+                completion: { _ in
+                    completedCount += 1
+                    if completedCount == buttons.count {
+                        self.isAnimating = false
+                        completion?()
+                    }
+                }
+            )
         }
     }
 }
