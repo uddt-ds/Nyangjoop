@@ -197,7 +197,7 @@ final class LocationPickerViewController: UIViewController {
 
     @objc private func currentLocationButtonTapped() {
 
-        locationManager.getCurrentLocation()
+        locationManager.getCurrentLocation(requestPermissionIfNeeded: true)
             .observe(on: MainScheduler.instance)
             .subscribe { [weak self] location in
                 guard let self else { return }
