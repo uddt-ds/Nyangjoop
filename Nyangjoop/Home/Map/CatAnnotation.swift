@@ -203,31 +203,20 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
 // MARK: - CatClusterAnnotationView
 final class CatClusterAnnotationView: MKAnnotationView, IdentifierProtocol {
     
-    // 배경 원형 컨테이너
-    private let containerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemOrange
-        return view
-    }()
-    
-    // 발자국 아이콘 이미지뷰
-    private let pawImageView: UIImageView = {
+    private let towerImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
-        let config = UIImage.SymbolConfiguration(pointSize: 30, weight: .bold)
-        imageView.image = UIImage(systemName: "pawprint.fill", withConfiguration: config)
-        imageView.tintColor = .white
+        imageView.image = UIImage(named: "catTower")
         return imageView
     }()
     
-    // 숫자 표시 레이블
     private let countLabel: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
-        label.font = .systemFont(ofSize: 14, weight: .heavy)
-        label.textColor = .systemOrange
-        label.backgroundColor = .white
-        label.layer.cornerRadius = 10
+        label.font = .systemFont(ofSize: 16, weight: .heavy)
+        label.textColor = .white
+        label.backgroundColor = .retroRed
+        label.layer.cornerRadius = 14
         label.clipsToBounds = true
         return label
     }()
@@ -246,24 +235,17 @@ final class CatClusterAnnotationView: MKAnnotationView, IdentifierProtocol {
         displayPriority = .defaultHigh
         collisionMode = .circle
         
-        addSubview(containerView)
-        containerView.addSubview(pawImageView)
-        containerView.addSubview(countLabel)
+        addSubview(towerImageView)
+        addSubview(countLabel)
         
-        containerView.snp.makeConstraints { make in
+        towerImageView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         
-        pawImageView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.size.equalTo(35)
-        }
-        
         countLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(4)
-            make.trailing.equalToSuperview().offset(-4)
-            make.width.greaterThanOrEqualTo(20)
-            make.height.equalTo(20)
+            make.top.equalToSuperview().offset(2)
+            make.trailing.equalToSuperview().offset(-2)
+            make.width.height.equalTo(32)
         }
     }
     
@@ -274,39 +256,38 @@ final class CatClusterAnnotationView: MKAnnotationView, IdentifierProtocol {
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        containerView.layer.cornerRadius = bounds.width / 2
     }
     
     func configure(with clusterAnnotation: MKClusterAnnotation) {
         let count = clusterAnnotation.memberAnnotations.count
         countLabel.text = "\(count)"
         
-        // 개수에 따라 크기 조정
         let size: CGFloat
-        let pawSize: CGFloat
         let fontSize: CGFloat
+        let labelSize: CGFloat
         
         switch count {
         case 2...9:
-            size = 60
-            pawSize = 30
-            fontSize = 14
-        case 10...99:
-            size = 70
-            pawSize = 35
-            fontSize = 15
-        default:
-            size = 80
-            pawSize = 40
+            size = 90
             fontSize = 16
+            labelSize = 32
+        case 10...99:
+            size = 100
+            fontSize = 14
+            labelSize = 36
+        default:
+            size = 110
+            fontSize = 13
+            labelSize = 40
         }
         
-        // 아이콘 크기 조정
-        let config = UIImage.SymbolConfiguration(pointSize: pawSize, weight: .bold)
-        pawImageView.image = UIImage(systemName: "pawprint.fill", withConfiguration: config)
-        
-        // 폰트 크기 조정
         countLabel.font = .systemFont(ofSize: fontSize, weight: .heavy)
+        
+        countLabel.snp.updateConstraints { make in
+            make.width.height.equalTo(labelSize)
+        }
+        
+        countLabel.layer.cornerRadius = labelSize / 2
         
         bounds = CGRect(x: 0, y: 0, width: size, height: size)
         centerOffset = CGPoint(x: 0, y: -size / 2)

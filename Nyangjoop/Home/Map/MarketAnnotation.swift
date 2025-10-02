@@ -45,11 +45,8 @@ final class MarketAnnotationView: MKAnnotationView, IdentifierProtocol {
         canShowCallout = true
         frame = CGRect(x: 0, y: 0, width: 50, height: 50)
 
-        // 생선 이미지
         let imageView = UIImageView(frame: bounds)
-        let config = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium)
-        imageView.image = UIImage(systemName: "fish.fill", withConfiguration: config)
-        imageView.tintColor = .retroRed
+        imageView.image = UIImage(named: "fish")
         imageView.contentMode = .scaleAspectFit
         addSubview(imageView)
     }
