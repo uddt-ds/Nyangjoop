@@ -11,7 +11,7 @@ import SnapKit
 final class CharacterCollectionViewCell: UICollectionViewCell, IdentifierProtocol {
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14)
+        label.font = .systemFont(ofSize: 14, weight: .medium)
         label.textAlignment = .center
         return label
     }()
@@ -35,8 +35,10 @@ final class CharacterCollectionViewCell: UICollectionViewCell, IdentifierProtoco
     private func setupUI() {
         contentView.addSubview(titleLabel)
 
-        contentView.layer.cornerRadius = 8
+        contentView.backgroundColor = .white
+        contentView.layer.cornerRadius = 13
         contentView.layer.borderWidth = 1
+        contentView.layer.borderColor = UIColor.appTitle.cgColor
 
         titleLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
@@ -54,13 +56,13 @@ final class CharacterCollectionViewCell: UICollectionViewCell, IdentifierProtoco
 extension CharacterCollectionViewCell {
     private func updateAppearance() {
         if isSelected {
-            contentView.backgroundColor = .systemBlue
-            contentView.layer.borderColor = UIColor.systemBlue.cgColor
-            titleLabel.textColor = .white
+            contentView.layer.borderColor = UIColor.key.cgColor
+            contentView.layer.borderWidth = 2
+            titleLabel.textColor = .appTitle
         } else {
-            contentView.backgroundColor = .systemGray6
-            contentView.layer.borderColor = UIColor.systemGray4.cgColor
-            titleLabel.textColor = .label
+            contentView.layer.borderColor = UIColor.appTitle.cgColor
+            contentView.layer.borderWidth = 1
+            titleLabel.textColor = .appTitle
         }
     }
 }

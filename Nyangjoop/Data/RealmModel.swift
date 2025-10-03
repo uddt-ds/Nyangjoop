@@ -116,12 +116,12 @@ enum CatGender: Int, CaseIterable {
 }
 
 enum CatCharacter: Int, CaseIterable {
-    case timid = 0     // 겁쟁이
-    case friendly = 1     // 개냥이
-    case grumpy = 2     // 까칠함
-    case calm = 3        // 무던함
-    case tsundere = 4     // 츤데레
-    case unknown = 5     // 몰라
+    case unknown = 0     // 몰라
+    case timid = 1     // 겁쟁이
+    case friendly = 2     // 개냥이
+    case grumpy = 3     // 까칠함
+    case calm = 4        // 무던함
+    case tsundere = 5     // 츤데레
 
     var displayName: String {
         switch self {

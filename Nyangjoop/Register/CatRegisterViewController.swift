@@ -17,12 +17,12 @@ final class CatRegisterViewController: BaseViewController {
     private var disposeBag = DisposeBag()
     private let viewModel = CatRegisterViewModel()
     
-    // PhotoPickerManager 사용
     private var photoPickerManager: PhotoPickerManager!
     private let photoWithMetadataSubject = PublishSubject<PhotoWithMetadata>()
 
     private let locationSetSubject = PublishSubject<CLLocationCoordinate2D>()
-    private let characterSelectedSubject = BehaviorSubject<Int>(value: 5)
+    private let characterSelectedSubject = BehaviorSubject<Int>(value: 0)
+    private let genderSelectedSubject = BehaviorSubject<Int?>(value: nil)
     private var selectedCoordinate: CLLocationCoordinate2D?
     private var selectedAddress: String?
     private let defaultImageSelectedSubject = PublishSubject<String>()
@@ -33,50 +33,52 @@ final class CatRegisterViewController: BaseViewController {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = true
         scrollView.alwaysBounceVertical = true
+        scrollView.backgroundColor = .appBg
         return scrollView
     }()
     
-    private let contentView = UIView()
+    private let contentView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .appBg
+        return view
+    }()
 
-    // 이미지 선택 섹션 헤더
     private let imageSectionLabel: UILabel = {
         let label = UILabel()
-        label.text = "이미지 등록 *"
-        label.font = .boldSystemFont(ofSize: 18)
-        label.textColor = .label
+        label.text = "이미지 *"
+        label.font = .boldSystemFont(ofSize: 16)
+        label.textColor = .appTitle
         return label
     }()
     
     private let imageSectionDescLabel: UILabel = {
         let label = UILabel()
-        label.text = "실제 사진과 지도 표시용 아이콘을 선택해주세요"
+        label.text = "실제 사진과 지도 표시용 아이콘을 함께 선택해주세요"
         label.font = .systemFont(ofSize: 13)
-        label.textColor = .systemGray
+        label.textColor = .appTitle
         label.numberOfLines = 0
         return label
     }()
     
-    // 이미지 선택 컨테이너 (좌우 분할)
     private let imageSelectionContainerView = UIView()
 
-    // 좌측: 실제 사진
     private let photoSectionView = UIView()
     
     private let photoLabel: UILabel = {
         let label = UILabel()
         label.text = "실제 사진"
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
-        label.textColor = .systemBlue
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .appTitle
         label.textAlignment = .center
         return label
     }()
 
     private let photoContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
-        view.layer.borderWidth = 2
-        view.layer.borderColor = UIColor.systemBlue.cgColor
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 16
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.appTitle.cgColor
         return view
     }()
 
@@ -84,8 +86,8 @@ final class CatRegisterViewController: BaseViewController {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 8
-        imageView.backgroundColor = .systemGray5
+        imageView.layer.cornerRadius = 12
+        imageView.backgroundColor = .systemGray6
         imageView.isHidden = true
         return imageView
     }()
@@ -101,7 +103,7 @@ final class CatRegisterViewController: BaseViewController {
     private let photoIconView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "camera.fill")
-        imageView.tintColor = .systemBlue
+        imageView.tintColor = .appTitle
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
@@ -109,30 +111,29 @@ final class CatRegisterViewController: BaseViewController {
     private let photoPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "사진 선택"
-        label.textColor = .systemBlue
+        label.textColor = .appTitle
         label.font = .systemFont(ofSize: 12, weight: .medium)
         label.textAlignment = .center
         return label
     }()
 
-    // 우측: 기본 이미지
     private let defaultImageSectionView = UIView()
     
     private let defaultImageLabel: UILabel = {
         let label = UILabel()
-        label.text = "지도 아이콘"
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
-        label.textColor = .systemOrange
+        label.text = "지도 표시 아이콘"
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .appTitle
         label.textAlignment = .center
         return label
     }()
 
     private let defaultImageContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
-        view.layer.borderWidth = 2
-        view.layer.borderColor = UIColor.systemOrange.cgColor
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 16
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.appTitle.cgColor
         return view
     }()
 
@@ -155,7 +156,7 @@ final class CatRegisterViewController: BaseViewController {
     private let defaultImageIconView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "cat.fill")
-        imageView.tintColor = .systemOrange
+        imageView.tintColor = .appTitle
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
@@ -163,7 +164,7 @@ final class CatRegisterViewController: BaseViewController {
     private let defaultImagePlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "아이콘 선택"
-        label.textColor = .systemOrange
+        label.textColor = .appTitle
         label.font = .systemFont(ofSize: 12, weight: .medium)
         label.textAlignment = .center
         return label
@@ -173,38 +174,91 @@ final class CatRegisterViewController: BaseViewController {
         let label = UILabel()
         label.text = "이름 *"
         label.font = .boldSystemFont(ofSize: 16)
-        label.textColor = .label
+        label.textColor = .appTitle
         return label
     }()
 
     private let nameTextField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "고양이 이름을 입력해주세요"
-        textField.borderStyle = .roundedRect
         textField.font = .systemFont(ofSize: 16)
+        textField.backgroundColor = .clear
+        textField.borderStyle = .none
         return textField
+    }()
+    
+    private let nameUnderlineView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .appTitle
+        return view
     }()
 
     private let genderHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "성별 *"
         label.font = .boldSystemFont(ofSize: 16)
-        label.textColor = .label
+        label.textColor = .appTitle
         return label
     }()
-
-    private let genderSegmentedControl: UISegmentedControl = {
-        let items = CatGender.allCases.map { $0.displayName }
-        let segmentedControl = UISegmentedControl(items: items)
-        segmentedControl.selectedSegmentIndex = 2 // 기본값: 모름
-        return segmentedControl
+    
+    private let genderButtonsStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fillEqually
+        stack.spacing = 24
+        return stack
+    }()
+    
+    private let maleButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = "남아"
+        config.baseForegroundColor = .appTitle
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        
+        let button = UIButton(configuration: config)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.layer.cornerRadius = 22
+        button.layer.borderWidth = 0
+        button.layer.borderColor = UIColor.key.cgColor
+        button.tag = 0
+        return button
+    }()
+    
+    private let femaleButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = "여아"
+        config.baseForegroundColor = .appTitle
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        
+        let button = UIButton(configuration: config)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.layer.cornerRadius = 22
+        button.layer.borderWidth = 0
+        button.layer.borderColor = UIColor.key.cgColor
+        button.tag = 1
+        return button
+    }()
+    
+    private let unknownGenderButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = "모름"
+        config.baseForegroundColor = .appTitle
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        
+        let button = UIButton(configuration: config)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.layer.cornerRadius = 22
+        button.layer.borderWidth = 0
+        button.layer.borderColor = UIColor.key.cgColor
+        button.tag = 2
+        return button
     }()
 
     private let characterHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "성격"
         label.font = .boldSystemFont(ofSize: 16)
-        label.textColor = .label
+        label.textColor = .appTitle
         return label
     }()
 
@@ -222,12 +276,11 @@ final class CatRegisterViewController: BaseViewController {
         return collectionView
     }()
 
-
     private let locationHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "발견 장소 *"
         label.font = .boldSystemFont(ofSize: 16)
-        label.textColor = .label
+        label.textColor = .appTitle
         return label
     }()
 
@@ -235,7 +288,7 @@ final class CatRegisterViewController: BaseViewController {
         let label = UILabel()
         label.text = "위치 정보를 가져오는 중..."
         label.font = .systemFont(ofSize: 14)
-        label.textColor = .systemGray
+        label.textColor = .appTitle
         label.numberOfLines = 2
         return label
     }()
@@ -243,17 +296,18 @@ final class CatRegisterViewController: BaseViewController {
     private let locationButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("위치 설정", for: .normal)
-        button.backgroundColor = .systemGreen
+        button.backgroundColor = .key
         button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.layer.cornerRadius = 8
         return button
     }()
 
     private let dateHeaderLabel: UILabel = {
         let label = UILabel()
-        label.text = "만난 날짜"
+        label.text = "만난 날짜 *"
         label.font = .boldSystemFont(ofSize: 16)
-        label.textColor = .label
+        label.textColor = .appTitle
         return label
     }()
 
@@ -262,6 +316,8 @@ final class CatRegisterViewController: BaseViewController {
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
         datePicker.date = Date()
+        datePicker.backgroundColor = .white
+        datePicker.layer.cornerRadius = 8
         return datePicker
     }()
 
@@ -270,6 +326,7 @@ final class CatRegisterViewController: BaseViewController {
         button.setTitle("등록하기", for: .normal)
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = .boldSystemFont(ofSize: 17)
         button.layer.cornerRadius = 12
         button.isEnabled = false
         return button
@@ -280,6 +337,8 @@ final class CatRegisterViewController: BaseViewController {
         setupNavigationBar()
         setupPhotoPickerManager()
         setupGestures()
+        setupGenderButtons()
+        selectDefaultCharacter()
         bind()
     }
 
@@ -288,20 +347,18 @@ final class CatRegisterViewController: BaseViewController {
         scrollView.addSubview(contentView)
         
         [imageSectionLabel, imageSectionDescLabel, imageSelectionContainerView,
-         nameHeaderLabel, nameTextField,
-         genderHeaderLabel, genderSegmentedControl,
+         nameHeaderLabel, nameTextField, nameUnderlineView,
+         genderHeaderLabel, genderButtonsStackView,
          characterHeaderLabel, characterBtnCollectionView,
          locationHeaderLabel, locationLabel, locationButton,
          dateHeaderLabel, datePicker, registerButton].forEach {
             contentView.addSubview($0)
         }
 
-        // 좌우 분할 컨테이너
         [photoSectionView, defaultImageSectionView].forEach {
             imageSelectionContainerView.addSubview($0)
         }
         
-        // 좌측: 실제 사진
         [photoLabel, photoContainerView].forEach {
             photoSectionView.addSubview($0)
         }
@@ -314,7 +371,6 @@ final class CatRegisterViewController: BaseViewController {
             photoPlaceholderStackView.addArrangedSubview($0)
         }
 
-        // 우측: 기본 이미지
         [defaultImageLabel, defaultImageContainerView].forEach {
             defaultImageSectionView.addSubview($0)
         }
@@ -325,6 +381,10 @@ final class CatRegisterViewController: BaseViewController {
         
         [defaultImageIconView, defaultImagePlaceholderLabel].forEach {
             defaultImagePlaceholderStackView.addArrangedSubview($0)
+        }
+        
+        [maleButton, femaleButton, unknownGenderButton].forEach {
+            genderButtonsStackView.addArrangedSubview($0)
         }
     }
 
@@ -353,10 +413,9 @@ final class CatRegisterViewController: BaseViewController {
         imageSelectionContainerView.snp.makeConstraints { make in
             make.top.equalTo(imageSectionDescLabel.snp.bottom).offset(12)
             make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(180)
+            make.height.equalTo(160)
         }
         
-        // 좌측: 실제 사진
         photoSectionView.snp.makeConstraints { make in
             make.leading.top.bottom.equalToSuperview()
             make.trailing.equalTo(imageSelectionContainerView.snp.centerX).offset(-6)
@@ -364,11 +423,11 @@ final class CatRegisterViewController: BaseViewController {
         
         photoLabel.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
-            make.height.equalTo(20)
+            make.height.equalTo(18)
         }
         
         photoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(photoLabel.snp.bottom).offset(4)
+            make.top.equalTo(photoLabel.snp.bottom).offset(6)
             make.leading.trailing.bottom.equalToSuperview()
         }
 
@@ -381,10 +440,9 @@ final class CatRegisterViewController: BaseViewController {
         }
         
         photoIconView.snp.makeConstraints { make in
-            make.size.equalTo(40)
+            make.size.equalTo(32)
         }
         
-        // 우측: 기본 이미지
         defaultImageSectionView.snp.makeConstraints { make in
             make.leading.equalTo(imageSelectionContainerView.snp.centerX).offset(6)
             make.trailing.top.bottom.equalToSuperview()
@@ -392,17 +450,17 @@ final class CatRegisterViewController: BaseViewController {
         
         defaultImageLabel.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
-            make.height.equalTo(20)
+            make.height.equalTo(18)
         }
 
         defaultImageContainerView.snp.makeConstraints { make in
-            make.top.equalTo(defaultImageLabel.snp.bottom).offset(4)
+            make.top.equalTo(defaultImageLabel.snp.bottom).offset(6)
             make.leading.trailing.bottom.equalToSuperview()
         }
 
         defaultImageView.snp.makeConstraints { make in
             make.center.equalToSuperview()
-            make.size.equalTo(80)
+            make.size.equalTo(70)
         }
 
         defaultImagePlaceholderStackView.snp.makeConstraints { make in
@@ -410,40 +468,53 @@ final class CatRegisterViewController: BaseViewController {
         }
         
         defaultImageIconView.snp.makeConstraints { make in
-            make.size.equalTo(40)
+            make.size.equalTo(32)
         }
 
         nameHeaderLabel.snp.makeConstraints { make in
             make.top.equalTo(imageSelectionContainerView.snp.bottom).offset(24)
             make.leading.equalToSuperview().offset(20)
+            make.width.equalTo(60)
         }
 
         nameTextField.snp.makeConstraints { make in
-            make.top.equalTo(nameHeaderLabel.snp.bottom).offset(8)
-            make.leading.trailing.equalToSuperview().inset(20)
+            make.centerY.equalTo(nameHeaderLabel)
+            make.leading.equalTo(nameHeaderLabel.snp.trailing).offset(12)
+            make.trailing.equalToSuperview().offset(-20)
             make.height.equalTo(44)
+        }
+        
+        nameUnderlineView.snp.makeConstraints { make in
+            make.top.equalTo(nameTextField.snp.bottom)
+            make.leading.equalTo(nameTextField)
+            make.trailing.equalTo(nameTextField)
+            make.height.equalTo(1)
         }
 
         genderHeaderLabel.snp.makeConstraints { make in
-            make.top.equalTo(nameTextField.snp.bottom).offset(20)
+            make.top.equalTo(nameUnderlineView.snp.bottom).offset(32)
             make.leading.equalToSuperview().offset(20)
+            make.width.equalTo(60)
         }
-
-        genderSegmentedControl.snp.makeConstraints { make in
-            make.top.equalTo(genderHeaderLabel.snp.bottom).offset(8)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(32)
+        
+        genderButtonsStackView.snp.makeConstraints { make in
+            make.centerY.equalTo(genderHeaderLabel)
+            make.leading.equalTo(genderHeaderLabel.snp.trailing).offset(12)
+            make.trailing.lessThanOrEqualToSuperview().offset(-20)
+            make.height.equalTo(44)
         }
 
         characterHeaderLabel.snp.makeConstraints { make in
-            make.top.equalTo(genderSegmentedControl.snp.bottom).offset(20)
+            make.top.equalTo(genderButtonsStackView.snp.bottom).offset(32)
             make.leading.equalToSuperview().offset(20)
+            make.width.equalTo(60)
         }
 
         characterBtnCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(characterHeaderLabel.snp.bottom).offset(8)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(40)
+            make.centerY.equalTo(characterHeaderLabel)
+            make.leading.equalTo(characterHeaderLabel.snp.trailing).offset(12)
+            make.trailing.equalToSuperview().offset(-20)
+            make.height.equalTo(39)
         }
 
         locationHeaderLabel.snp.makeConstraints { make in
@@ -472,6 +543,7 @@ final class CatRegisterViewController: BaseViewController {
         datePicker.snp.makeConstraints { make in
             make.top.equalTo(dateHeaderLabel.snp.bottom).offset(8)
             make.leading.equalToSuperview().offset(20)
+            make.height.equalTo(36)
         }
 
         registerButton.snp.makeConstraints { make in
@@ -481,16 +553,36 @@ final class CatRegisterViewController: BaseViewController {
             make.bottom.equalToSuperview().offset(-20)
         }
     }
+    
+    override func configureView() {
+        super.configureView()
+        view.backgroundColor = .appBg
+    }
 
     private func setupNavigationBar() {
-        title = "고양이 등록"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonTapped))
+        navigationController?.navigationBar.prefersLargeTitles = false
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "고양이 등록"
+        titleLabel.font = .boldSystemFont(ofSize: 20)
+        titleLabel.textColor = .label
+        
+        let containerView = UIView()
+        containerView.addSubview(titleLabel)
+        
+        titleLabel.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview()
+            make.top.equalToSuperview().offset(8)
+            make.bottom.equalToSuperview()
+        }
+        
+        let leftBarButtonItem = UIBarButtonItem(customView: containerView)
+        navigationItem.leftBarButtonItem = leftBarButtonItem
     }
     
     private func setupPhotoPickerManager() {
         photoPickerManager = PhotoPickerManager(presentingViewController: self)
         
-        // PhotoPickerManager에서 메타데이터 포함 사진 받기
         photoPickerManager.selectedPhoto
             .subscribe(onNext: { [weak self] photoWithMetadata in
                 guard let self = self else { return }
@@ -509,6 +601,46 @@ final class CatRegisterViewController: BaseViewController {
         defaultImageContainerView.isUserInteractionEnabled = true
     }
     
+    private func setupGenderButtons() {
+        maleButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.selectGenderButton(owner.maleButton)
+                owner.genderSelectedSubject.onNext(0)
+            }
+            .disposed(by: disposeBag)
+        
+        femaleButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.selectGenderButton(owner.femaleButton)
+                owner.genderSelectedSubject.onNext(1)
+            }
+            .disposed(by: disposeBag)
+        
+        unknownGenderButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.selectGenderButton(owner.unknownGenderButton)
+                owner.genderSelectedSubject.onNext(2)
+            }
+            .disposed(by: disposeBag)
+    }
+    
+    private func selectGenderButton(_ selectedButton: UIButton) {
+        [maleButton, femaleButton, unknownGenderButton].forEach { button in
+            if button == selectedButton {
+                button.layer.borderWidth = 2
+            } else {
+                button.layer.borderWidth = 0
+            }
+        }
+    }
+    
+    private func selectDefaultCharacter() {
+        DispatchQueue.main.async { [weak self] in
+            let indexPath = IndexPath(item: 0, section: 0)
+            self?.characterBtnCollectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        }
+    }
+    
     @objc private func photoContainerTapped() {
         photoPickerManager.showPhotoSelectionActionSheet()
     }
@@ -517,22 +649,18 @@ final class CatRegisterViewController: BaseViewController {
         showDefaultImagePicker()
     }
 
-    @objc private func cancelButtonTapped() {
-        dismiss(animated: true)
-    }
-
     private func createCharacterLayout() -> UICollectionViewCompositionalLayout {
         return UICollectionViewCompositionalLayout { _, _ in
 
             let itemSize = NSCollectionLayoutSize(
                 widthDimension: .estimated(80),
-                heightDimension: .absolute(32)
+                heightDimension: .absolute(39)
             )
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
             let groupSize = NSCollectionLayoutSize(
                 widthDimension: .estimated(80),
-                heightDimension: .absolute(32)
+                heightDimension: .absolute(39)
             )
             let group = NSCollectionLayoutGroup.horizontal(
                 layoutSize: groupSize,
@@ -555,7 +683,7 @@ extension CatRegisterViewController {
             photoWithMetadataSelected: photoWithMetadataSubject.asObservable(),
             defaultImageSelected: defaultImageSelectedSubject.asObservable(),
             nameTextChanged: nameTextField.rx.text.orEmpty.asObservable(),
-            genderSelected: genderSegmentedControl.rx.selectedSegmentIndex.asObservable(),
+            genderSelected: genderSelectedSubject.compactMap { $0 }.asObservable(),
             characterSelected: characterSelectedSubject.asObservable(),
             locationButtonTapped: locationButton.rx.tap.asObservable(),
             locationSet: locationSetSubject.asObservable(),
@@ -577,7 +705,6 @@ extension CatRegisterViewController {
             }
             .disposed(by: disposeBag)
         
-        // 메타데이터에서 추출된 날짜가 있으면 DatePicker에 설정
         output.extractedDate
             .drive(with: self) { owner, date in
                 if let date = date {
@@ -622,14 +749,16 @@ extension CatRegisterViewController {
         photoImageView.image = image
         photoImageView.isHidden = false
         photoPlaceholderStackView.isHidden = true
-        photoContainerView.layer.borderColor = UIColor.systemGreen.cgColor
+        photoContainerView.layer.borderColor = UIColor.key.cgColor
+        photoContainerView.layer.borderWidth = 2
     }
     
     private func displaySelectedDefaultImage(_ image: UIImage) {
         defaultImageView.image = image
         defaultImageView.isHidden = false
         defaultImagePlaceholderStackView.isHidden = true
-        defaultImageContainerView.layer.borderColor = UIColor.systemGreen.cgColor
+        defaultImageContainerView.layer.borderColor = UIColor.key.cgColor
+        defaultImageContainerView.layer.borderWidth = 2
     }
 
     private func showLocationPickerViewController() {
@@ -642,7 +771,7 @@ extension CatRegisterViewController {
 
     private func updateRegisterButton(_ isEnabled: Bool) {
         registerButton.isEnabled = isEnabled
-        registerButton.backgroundColor = isEnabled ? .systemBlue : .systemGray4
+        registerButton.backgroundColor = isEnabled ? .key : .systemGray4
     }
 
     private func showRegistrationSuccessAlert() {

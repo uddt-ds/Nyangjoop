@@ -109,7 +109,13 @@ final class CustomTabBarController: UIViewController {
         print("CatRegisterViewController 생성 시작")
         let catRegisterVC = CatRegisterViewController()
         let nav = UINavigationController(rootViewController: catRegisterVC)
-        nav.modalPresentationStyle = .fullScreen
+        nav.modalPresentationStyle = .pageSheet
+        
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
         
         print("모달 present 시작")
         present(nav, animated: true) {
