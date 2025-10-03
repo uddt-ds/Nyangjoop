@@ -60,67 +60,52 @@ final class HomeViewController: BaseViewController {
     }()
 
     private let profileButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "person.circle.fill"), for: .normal)
+        let button = UIButton()
+        button.setImage(.profile, for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .retroYellow
         button.layer.cornerRadius = 10
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
 
     private let menuToggleButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        let button = UIButton()
+        button.setImage(.cheveronL, for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .retroBlue
         button.layer.cornerRadius = 10
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
 
     private let storeToggleButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "fish.fill"), for: .normal)
+        let button = UIButton()
+        button.setImage(.fish, for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .retroYellow
         button.layer.cornerRadius = 10
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
 
     private let galleryToggleButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "photo"), for: .normal)
+        let button = UIButton()
+        button.setImage(.gallery, for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .retroYellow
         button.layer.cornerRadius = 10
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
 
     private let currentLocationButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "location.fill"), for: .normal)
+        let button = UIButton()
+        button.setImage(.location, for: .normal)
         button.backgroundColor = .white
-        button.tintColor = .retroYellow
         button.layer.cornerRadius = 10
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
 
@@ -340,8 +325,8 @@ extension HomeViewController {
     private func toggleMenuButtons(_ isExpanded: Bool) {
         isMenuExpanded = isExpanded
 
-        let image = isMenuExpanded ? "chevron.right" : "chevron.left"
-        self.menuToggleButton.setImage(UIImage(systemName: image), for: .normal)
+        let image: UIImage = isMenuExpanded ? .cheveronR : .cheveronL
+        self.menuToggleButton.setImage(image, for: .normal)
 
         if isExpanded {
             storeToggleButton.isHidden = false
@@ -738,7 +723,7 @@ extension HomeViewController {
         let distanceString = formatter.string(from: distance.converted(to: .kilometers))
         let timeString = formatTravelTime(time)
 
-        let message = "\(destinationName)까지 \(distanceString) | \(timeString)"
+        let message = "\(destinationName)추정 위치까지 \(distanceString) | \(timeString)"
         
         let alert = UIAlertController(title: "경로 안내", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
