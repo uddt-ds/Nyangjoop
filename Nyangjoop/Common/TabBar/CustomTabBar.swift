@@ -24,25 +24,26 @@ final class CustomTabBar: UIView {
 
     // 중앙 메인 버튼 (발바닥) - 반원 모양
     private let mainButton: UIButton = {
-        let button = UIButton(type: .system)
+        let button = UIButton()
         button.backgroundColor = .clear
         return button
     }()
     
-    private let menuIconView: UIView = {
-        let view = UIView()
-        view.isUserInteractionEnabled = false
-        return view
+    private let menuIconView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = .hamburger
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = false
+        return imageView
     }()
     
     private var semiCircleLayer: CAShapeLayer?
 
     // 첫 번째 서브 버튼 (Home - 왼쪽)
     private let homeButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-        button.setImage(UIImage(systemName: "house.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .white
+        let resizedImage = UIImage.home.resize(to: CGSize(width: 40, height: 40))
+        let button = UIButton()
+        button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
@@ -52,10 +53,9 @@ final class CustomTabBar: UIView {
 
     // 두 번째 서브 버튼 (Register - 상단) - + 아이콘
     private let registerButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .bold)
-        button.setImage(UIImage(systemName: "plus", withConfiguration: config), for: .normal)
-        button.tintColor = .white
+        let resizedImage = UIImage.addCat.resize(to: CGSize(width: 40, height: 40))
+        let button = UIButton()
+        button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
@@ -65,10 +65,9 @@ final class CustomTabBar: UIView {
 
     // 세 번째 서브 버튼 (Log - 오른쪽)
     private let logButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-        button.setImage(UIImage(systemName: "pencil.circle.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .white
+        let resizedImage = UIImage.pencil.resize(to: CGSize(width: 40, height: 40))
+        let button = UIButton()
+        button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
@@ -126,7 +125,8 @@ final class CustomTabBar: UIView {
         
         // 햄버거 아이콘
         menuIconView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview().offset(-10)
             make.width.equalTo(30)
             make.height.equalTo(22)
         }
@@ -191,34 +191,7 @@ final class CustomTabBar: UIView {
     }
     
     private func createMenuIcon() {
-        menuIconView.layer.sublayers?.removeAll()
-        
         layoutIfNeeded()
-        
-        let width = menuIconView.bounds.width
-        let height = menuIconView.bounds.height
-
-        guard width > 0, height > 0 else { return }
-        
-        let lineWidth: CGFloat = 3
-        let lineSpacing: CGFloat = 5
-        
-        for i in 0..<3 {
-            let line = CAShapeLayer()
-            let path = UIBezierPath()
-            let y = CGFloat(i) * (lineWidth + lineSpacing)
-            
-            path.move(to: CGPoint(x: 0, y: y))
-            path.addLine(to: CGPoint(x: width, y: y))
-            
-            line.path = path.cgPath
-            line.strokeColor = UIColor.white.cgColor
-            line.lineWidth = lineWidth
-            line.lineCap = .round
-            
-            menuIconView.layer.addSublayer(line)
-        }
-        
     }
     
     private func hideMenuIcon() {
