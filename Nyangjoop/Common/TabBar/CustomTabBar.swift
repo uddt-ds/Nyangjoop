@@ -43,14 +43,10 @@ final class CustomTabBar: UIView {
         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
         button.setImage(UIImage(systemName: "house.fill", withConfiguration: config), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = .retroRed
+        button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
         button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
-        button.layer.shadowOpacity = 0.2
         return button
     }()
 
@@ -60,14 +56,10 @@ final class CustomTabBar: UIView {
         let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .bold)
         button.setImage(UIImage(systemName: "plus", withConfiguration: config), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = .retroRed
+        button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
         button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
-        button.layer.shadowOpacity = 0.2
         return button
     }()
 
@@ -77,14 +69,10 @@ final class CustomTabBar: UIView {
         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
         button.setImage(UIImage(systemName: "pencil.circle.fill", withConfiguration: config), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = .retroRed
+        button.backgroundColor = .key
         button.layer.cornerRadius = 28
         button.alpha = 0
         button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
-        button.layer.shadowOpacity = 0.2
         return button
     }()
 
@@ -195,14 +183,8 @@ final class CustomTabBar: UIView {
         // CAShapeLayer 생성하고 색상 채우기
         let shapeLayer = CAShapeLayer()
         shapeLayer.path = path.cgPath
-        shapeLayer.fillColor = UIColor.retroRed.cgColor
+        shapeLayer.fillColor = UIColor.key.cgColor
         shapeLayer.strokeColor = UIColor.clear.cgColor
-        
-        // 그림자 추가
-        shapeLayer.shadowColor = UIColor.black.cgColor
-        shapeLayer.shadowOffset = CGSize(width: 0, height: -2)
-        shapeLayer.shadowRadius = 8
-        shapeLayer.shadowOpacity = 0.3
         
         mainButton.layer.insertSublayer(shapeLayer, at: 0)
         semiCircleLayer = shapeLayer
