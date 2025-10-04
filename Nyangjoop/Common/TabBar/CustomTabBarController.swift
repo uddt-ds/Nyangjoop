@@ -107,6 +107,10 @@ final class CustomTabBarController: UIViewController {
 
     private func presentCatRegisterViewController() {
         print("CatRegisterViewController 생성 시작")
+        
+        // HomeViewController에 callout 숨기기 알림 전송
+        NotificationCenter.default.post(name: NSNotification.Name("HideCallout"), object: nil)
+        
         let catRegisterVC = CatRegisterViewController()
         let nav = UINavigationController(rootViewController: catRegisterVC)
         nav.modalPresentationStyle = .pageSheet
@@ -120,6 +124,27 @@ final class CustomTabBarController: UIViewController {
         print("모달 present 시작")
         present(nav, animated: true) {
             print("모달 present 완료")
+        }
+        
+        nav.presentationController?.delegate = self
+    }
+    
+    func hideTabBar() {
+        customTabBar.isHidden = true
+    }
+    
+    func showTabBar() {
+        customTabBar.isHidden = false
+    }
+}
+
+extension CustomTabBarController: UIAdaptivePresentationControllerDelegate {
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        selectedIndex = 0
+        
+        if let homeNav = viewControllers.first as? UINavigationController,
+           let homeVC = homeNav.viewControllers.first as? HomeViewController {
+            homeVC.viewWillAppear(false)
         }
     }
 }
