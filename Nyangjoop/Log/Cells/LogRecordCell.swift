@@ -21,14 +21,6 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         return view
     }()
 
-    private let dateLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = .systemGray
-        label.textAlignment = .center
-        return label
-    }()
-
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
@@ -36,6 +28,51 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         imageView.backgroundColor = .systemGray6
         imageView.layer.cornerRadius = 8
         return imageView
+    }()
+    
+    private let overlayView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        view.layer.cornerRadius = 8
+        return view
+    }()
+    
+    private let dateLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .white
+        label.textAlignment = .right
+        return label
+    }()
+    
+    private let infoContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 8
+        return view
+    }()
+    
+    private let catIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = .appTitle
+        return imageView
+    }()
+    
+    private let catNameLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .appTitle
+        label.numberOfLines = 1
+        return label
+    }()
+    
+    private let memoLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 12)
+        label.textColor = .appTitle
+        label.numberOfLines = 1
+        return label
     }()
 
     override init(frame: CGRect) {
@@ -51,8 +88,11 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
 
     private func configureHierarchy() {
         contentView.addSubview(containerView)
-        [dateLabel, imageView].forEach {
+        [imageView, overlayView, dateLabel, infoContainerView].forEach {
             containerView.addSubview($0)
+        }
+        [catIconImageView, catNameLabel, memoLabel].forEach {
+            infoContainerView.addSubview($0)
         }
     }
 
@@ -61,25 +101,68 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
             make.edges.equalToSuperview().inset(4)
         }
 
-        dateLabel.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview().inset(8)
-            make.height.equalTo(16)
-        }
-
         imageView.snp.makeConstraints { make in
-            make.top.equalTo(dateLabel.snp.bottom).offset(8)
+            make.top.leading.trailing.equalToSuperview().inset(8)
+            make.height.equalTo(containerView.snp.width).multipliedBy(0.7)
+        }
+        
+        overlayView.snp.makeConstraints { make in
+            make.edges.equalTo(imageView)
+        }
+        
+        dateLabel.snp.makeConstraints { make in
+            make.trailing.bottom.equalTo(imageView).inset(8)
+        }
+        
+        infoContainerView.snp.makeConstraints { make in
+            make.top.equalTo(imageView.snp.bottom).offset(8)
             make.leading.trailing.bottom.equalToSuperview().inset(8)
+        }
+        
+        catIconImageView.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(8)
+            make.top.equalToSuperview().offset(8)
+            make.size.equalTo(24)
+        }
+        
+        catNameLabel.snp.makeConstraints { make in
+            make.leading.equalTo(catIconImageView.snp.trailing).offset(8)
+            make.trailing.equalToSuperview().offset(-8)
+            make.centerY.equalTo(catIconImageView)
+        }
+        
+        memoLabel.snp.makeConstraints { make in
+            make.leading.equalTo(catIconImageView.snp.trailing).offset(8)
+            make.trailing.equalToSuperview().offset(-8)
+            make.top.equalTo(catNameLabel.snp.bottom).offset(2)
+            make.bottom.equalToSuperview().offset(-4)
         }
     }
 
     func configure(with visitLog: VisitLog) {
-        // 날짜 포맷팅
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy. MM. dd"
         dateLabel.text = formatter.string(from: visitLog.date)
 
-        // 이미지 로드
         loadImage(from: visitLog.filePath)
+        
+        if let cat = visitLog.cat {
+            catNameLabel.text = cat.name
+            if let catImage = UIImage(named: cat.drawImage) {
+                catIconImageView.image = catImage
+            } else {
+                catIconImageView.image = UIImage(systemName: "cat.fill")
+            }
+        } else {
+            catNameLabel.text = "고양이"
+            catIconImageView.image = UIImage(systemName: "cat.fill")
+        }
+        
+        if let memo = visitLog.memo, !memo.isEmpty {
+            memoLabel.text = memo
+        } else {
+            memoLabel.text = "집 근처 참외네..."
+        }
     }
 
     private func loadImage(from filePath: String) {

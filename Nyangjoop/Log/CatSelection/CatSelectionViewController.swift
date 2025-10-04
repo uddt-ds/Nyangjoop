@@ -38,6 +38,7 @@ final class CatSelectionViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupNavigationBar()
         loadCats()
     }
 

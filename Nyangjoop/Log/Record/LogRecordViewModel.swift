@@ -173,6 +173,10 @@ final class LogRecordViewModel: ViewModelProtocol {
                                         lon: location.longitude)
 
                 try self.realmManager.saveVisitLog(visitLog, to: selectedCat)
+                
+                // 기록 저장 성공 후 Notification 발송
+                NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
+                
                 observer.onNext(.success(()))
             } catch {
                 observer.onNext(.failure(LogRecordError.saveError(error)))

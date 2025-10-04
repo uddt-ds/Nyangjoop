@@ -27,26 +27,45 @@ final class LogRecordViewController: BaseViewController {
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.backgroundColor = .appBg
         return scrollView
     }()
 
     private let contentView = UIView()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "기록 추가"
+        label.font = .systemFont(ofSize: 24, weight: .bold)
+        label.textColor = .label
+        return label
+    }()
 
     private let dateLabel: UILabel = {
         let label = UILabel()
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy. MM. dd"
         label.text = formatter.string(from: Date())
-        label.font = .systemFont(ofSize: 18, weight: .medium)
+        label.font = .systemFont(ofSize: 16)
         label.textAlignment = .center
-        label.textColor = .systemGray
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private let catHeaderLabel: UILabel = {
+        let label = UILabel()
+        label.text = "고양이 선택 *"
+        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.textColor = .label
         return label
     }()
 
     private let catSelectionButton: UIButton = {
          let button = UIButton(type: .system)
-         button.backgroundColor = .systemGray6
-         button.layer.cornerRadius = 12
+         button.backgroundColor = .white
+         button.layer.cornerRadius = 16
+         button.layer.borderWidth = 1
+         button.layer.borderColor = UIColor.systemGray5.cgColor
          button.contentHorizontalAlignment = .left
          button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
          return button
@@ -56,7 +75,7 @@ final class LogRecordViewController: BaseViewController {
          let label = UILabel()
          label.text = "고양이를 선택하세요"
          label.font = .systemFont(ofSize: 16)
-         label.textColor = .systemGray
+         label.textColor = .systemGray2
          return label
      }()
 
@@ -68,22 +87,29 @@ final class LogRecordViewController: BaseViewController {
          return imageView
      }()
 
+    private let photoHeaderLabel: UILabel = {
+        let label = UILabel()
+        label.text = "사진 선택 *"
+        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.textColor = .label
+        return label
+    }()
 
     private let photoContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray6
+        view.backgroundColor = .white
         view.layer.cornerRadius = 16
-        view.layer.borderWidth = 2
-        view.layer.borderColor = UIColor.systemGray4.cgColor
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemGray5.cgColor
         return view
     }()
 
     private let photoImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 12
-        imageView.backgroundColor = .systemGray5
+        imageView.backgroundColor = .systemGray6
         imageView.isHidden = true
         return imageView
     }()
@@ -91,7 +117,7 @@ final class LogRecordViewController: BaseViewController {
     private let photoPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "사진 등록하기"
-        label.font = .systemFont(ofSize: 20, weight: .medium)
+        label.font = .systemFont(ofSize: 18, weight: .medium)
         label.textColor = .systemGray3
         label.textAlignment = .center
         return label
@@ -102,11 +128,21 @@ final class LogRecordViewController: BaseViewController {
         button.backgroundColor = .clear
         return button
     }()
+    
+    private let memoHeaderLabel: UILabel = {
+        let label = UILabel()
+        label.text = "메모 작성"
+        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.textColor = .label
+        return label
+    }()
 
     private let memoContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 16
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemGray5.cgColor
         return view
     }()
 
@@ -117,13 +153,13 @@ final class LogRecordViewController: BaseViewController {
         textView.backgroundColor = .clear
         textView.delegate = self
         textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        textView.isScrollEnabled = false // 자동 높이 조절
+        textView.isScrollEnabled = false
         return textView
     }()
 
     private let memoPlaceholderLabel: UILabel = {
         let label = UILabel()
-        label.text = "츄르 준날..."
+        label.text = "메모를 입력하세요"
         label.font = .systemFont(ofSize: 16)
         label.textColor = .systemGray3
         return label
@@ -135,7 +171,7 @@ final class LogRecordViewController: BaseViewController {
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        button.titleLabel?.font = .boldSystemFont(ofSize: 17)
         button.isEnabled = false
         return button
     }()
@@ -145,7 +181,6 @@ final class LogRecordViewController: BaseViewController {
         bind()
         setupNavigationBar()
         setupKeyboardDismiss()
-
         updateCatSelectionUI()
     }
 
@@ -155,7 +190,9 @@ final class LogRecordViewController: BaseViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
 
-        [dateLabel, catSelectionButton, photoContainerView, memoContainerView, saveButton].forEach {
+        [titleLabel, dateLabel, catHeaderLabel, catSelectionButton, 
+         photoHeaderLabel, photoContainerView, 
+         memoHeaderLabel, memoContainerView, saveButton].forEach {
             contentView.addSubview($0)
         }
 
@@ -182,16 +219,25 @@ final class LogRecordViewController: BaseViewController {
             make.width.equalToSuperview()
         }
 
-        dateLabel.snp.makeConstraints { make in
+        titleLabel.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(20)
+            make.leading.equalToSuperview().offset(20)
+        }
+
+        dateLabel.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(30)
+        }
+        
+        catHeaderLabel.snp.makeConstraints { make in
+            make.top.equalTo(dateLabel.snp.bottom).offset(24)
+            make.leading.equalToSuperview().offset(20)
         }
 
         catSelectionButton.snp.makeConstraints { make in
-            make.top.equalTo(dateLabel.snp.bottom).offset(16)
+            make.top.equalTo(catHeaderLabel.snp.bottom).offset(12)
             make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(56)
+            make.height.equalTo(60)
         }
 
         catNameLabel.snp.makeConstraints { make in
@@ -204,16 +250,20 @@ final class LogRecordViewController: BaseViewController {
             make.centerY.equalToSuperview()
             make.width.height.equalTo(20)
         }
+        
+        photoHeaderLabel.snp.makeConstraints { make in
+            make.top.equalTo(catSelectionButton.snp.bottom).offset(24)
+            make.leading.equalToSuperview().offset(20)
+        }
 
         photoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(catSelectionButton.snp.bottom).offset(20)
+            make.top.equalTo(photoHeaderLabel.snp.bottom).offset(12)
             make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(250)
+            make.height.equalTo(200)
         }
 
         photoImageView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.size.equalTo(200)
+            make.edges.equalToSuperview().inset(12)
         }
 
         photoPlaceholderLabel.snp.makeConstraints { make in
@@ -223,15 +273,20 @@ final class LogRecordViewController: BaseViewController {
         photoButton.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+        
+        memoHeaderLabel.snp.makeConstraints { make in
+            make.top.equalTo(photoContainerView.snp.bottom).offset(24)
+            make.leading.equalToSuperview().offset(20)
+        }
 
         memoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(photoContainerView.snp.bottom).offset(20)
+            make.top.equalTo(memoHeaderLabel.snp.bottom).offset(12)
             make.leading.trailing.equalToSuperview().inset(20)
             make.height.greaterThanOrEqualTo(120)
         }
 
         memoTextView.snp.makeConstraints { make in
-            make.edges.equalToSuperview().inset(16)
+            make.edges.equalToSuperview()
         }
 
         memoPlaceholderLabel.snp.makeConstraints { make in
@@ -247,15 +302,14 @@ final class LogRecordViewController: BaseViewController {
             make.bottom.equalToSuperview().offset(-20)
         }
     }
+    
+    override func configureView() {
+        super.configureView()
+        view.backgroundColor = .appBg
+    }
 
     private func setupNavigationBar() {
-        title = "기록 추가"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "xmark"),
-                                                           style: .plain,
-                                                           target: self,
-                                                           action: #selector(closeButtonTapped))
-
-        navigationItem.leftBarButtonItem?.tintColor = .systemGray
+        navigationController?.setNavigationBarHidden(true, animated: false)
     }
     
     private func setupKeyboardDismiss() {
@@ -266,10 +320,6 @@ final class LogRecordViewController: BaseViewController {
     
     @objc private func dismissKeyboard() {
         view.endEditing(true)
-    }
-
-    @objc private func closeButtonTapped() {
-        dismiss(animated: true)
     }
 }
 
@@ -308,7 +358,7 @@ extension LogRecordViewController {
 
         output.saveCompleted
             .drive(with: self) { owner, _ in
-                owner.showSaveSuccessAlert()
+                owner.dismiss(animated: true)
             }
             .disposed(by: disposeBag)
 
@@ -320,51 +370,13 @@ extension LogRecordViewController {
 
         catSelectionButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                owner.showCatSelectionView()
+                owner.showCatSelectionSheet()
             }
             .disposed(by: disposeBag)
     }
 }
 
 extension LogRecordViewController {
-    private func showPhotoSelectionActionSheet() {
-        let alert = UIAlertController(title: "사진 선택", message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "카메라", style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.presentCamera()
-        })
-        alert.addAction(UIAlertAction(title: "사진 앨범", style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.presentPhotoLibrary()
-        })
-
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        present(alert, animated: true)
-    }
-
-    private func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            print("카메라를 사용할 수 없습니다")
-            return
-        }
-
-        let picker = UIImagePickerController()
-        picker.delegate = self
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        present(picker, animated: true)
-    }
-
-    private func presentPhotoLibrary() {
-        var configuration = PHPickerConfiguration()
-        configuration.filter = .images
-        configuration.selectionLimit = 1
-
-        let picker = PHPickerViewController(configuration: configuration)
-        picker.delegate = self
-        present(picker, animated: true)
-    }
-
     private func displaySelectedPhoto(_ image: UIImage) {
         photoImageView.image = image
         photoImageView.isHidden = false
@@ -373,50 +385,43 @@ extension LogRecordViewController {
 
     private func updateSaveButton(_ isEnabled: Bool) {
         saveButton.isEnabled = isEnabled
-        saveButton.backgroundColor = isEnabled ? .systemBlue : .systemGray4
+        saveButton.backgroundColor = isEnabled ? .key : .systemGray4
     }
 
-    private func showSaveSuccessAlert() {
-        let alert = UIAlertController(
-            title: "등록 완료",
-            message: "기록이 성공적으로 저장되었습니다!",
-            preferredStyle: .alert
-        )
+    private func showPhotoSelectionActionSheet() {
+        let alert = UIAlertController(title: "사진 선택", message: nil, preferredStyle: .actionSheet)
 
-        alert.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-            guard let self else { return }
-            if let presentingVC = self.presentingViewController {
-                presentingVC.dismiss(animated: true)
-            } else {
-                self.navigationController?.popViewController(animated: true)
-            }
+        alert.addAction(UIAlertAction(title: "카메라", style: .default) { [weak self] _ in
+            self?.presentCamera()
         })
 
+        alert.addAction(UIAlertAction(title: "앨범에서 선택", style: .default) { [weak self] _ in
+            self?.presentPHPicker()
+        })
+
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+
         present(alert, animated: true)
     }
 
-    private func showErrorAlert(message: String) {
-        let alert = UIAlertController(title: "오류", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
-    }
-
-    private func showCatSelectionView() {
+    private func showCatSelectionSheet() {
         let catSelectionVC = CatSelectionViewController()
-        catSelectionVC.onCatSelected = { [weak self] selectedCat in
-            guard let self else { return }
-            self.selectedCat = selectedCat
-            self.updateCatSelectionUI()
+        catSelectionVC.onCatSelected = { [weak self] cat in
+            self?.selectedCat = cat
+            self?.selectedCatSubject.onNext(cat)
+            self?.updateCatSelectionUI()
         }
-
-        catSelectionVC.modalPresentationStyle = .pageSheet
-
-        if let sheet = catSelectionVC.sheetPresentationController {
+        
+        let nav = UINavigationController(rootViewController: catSelectionVC)
+        nav.modalPresentationStyle = .pageSheet
+        
+        if let sheet = nav.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
         }
-
-        present(catSelectionVC, animated: true)
+        
+        present(nav, animated: true)
     }
 
     private func updateCatSelectionUI() {
@@ -425,64 +430,35 @@ extension LogRecordViewController {
             catNameLabel.textColor = .label
         } else {
             catNameLabel.text = "고양이를 선택하세요"
-            catNameLabel.textColor = .systemGray
+            catNameLabel.textColor = .systemGray2
         }
+    }
 
-        selectedCatSubject.onNext(selectedCat)
+    private func presentCamera() {
+        let customCamera = CustomCameraViewController()
+        customCamera.delegate = self
+        customCamera.modalPresentationStyle = .fullScreen
+        present(customCamera, animated: false)
+    }
+
+    private func presentPHPicker() {
+        var configuration = PHPickerConfiguration()
+        configuration.filter = .images
+        configuration.selectionLimit = 1
+
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = self
+        present(picker, animated: true)
     }
 }
 
-extension LogRecordViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-
-        if let image = info[.originalImage] as? UIImage {
-            photoSelectedSubject.onNext(image)
-            
-            // 메타데이터 추출
-            if let imageURL = info[.imageURL] as? URL {
-                extractMetadata(from: imageURL)
-            } else if let mediaMetadata = info[.mediaMetadata] as? [String: Any] {
-                extractMetadataFromDictionary(mediaMetadata)
-            }
-        }
-    }
-
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true)
+extension LogRecordViewController: CustomCameraDelegate {
+    func didCaptureImage(_ image: UIImage) {
+        photoSelectedSubject.onNext(image)
     }
     
-    private func extractMetadata(from url: URL) {
-        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let metadata = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] else {
-            print("메타데이터를 찾을 수 없습니다")
-            return
-        }
-        
-        print("이미지 메타데이터: \(metadata)")
-        
-        if let gpsData = metadata["{GPS}"] as? [String: Any] {
-            extractGPSData(from: gpsData)
-        }
-    }
-    
-    private func extractMetadataFromDictionary(_ metadata: [String: Any]) {
-        print("메타데이터: \(metadata)")
-        
-        if let gpsData = metadata["{GPS}"] as? [String: Any] {
-            extractGPSData(from: gpsData)
-        }
-    }
-    
-    private func extractGPSData(from gpsData: [String: Any]) {
-        if let latitude = gpsData["Latitude"] as? Double,
-           let longitude = gpsData["Longitude"] as? Double {
-            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            locationSetSubject.onNext(coordinate)
-            print("위치 정보: \(latitude), \(longitude)")
-        } else {
-            print("GPS 데이터를 찾을 수 없습니다")
-        }
+    func didRequestRetake() {
+        // 재촬영 요청 시 처리
     }
 }
 
@@ -514,13 +490,5 @@ extension LogRecordViewController: UITextViewDelegate {
 
     func textViewDidEndEditing(_ textView: UITextView) {
         memoPlaceholderLabel.isHidden = !textView.text.isEmpty
-    }
-    
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-        if text == "\n" {
-            textView.resignFirstResponder()
-            return false
-        }
-        return true
     }
 }
