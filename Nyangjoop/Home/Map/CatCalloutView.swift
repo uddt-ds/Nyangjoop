@@ -45,26 +45,34 @@ final class CatCalloutView: UIView {
     }()
     
     private let directionsButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("길찾기", for: .normal)
-        button.setImage(UIImage(systemName: "location.fill"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = .retroBlue
+        var config = UIButton.Configuration.filled()
+        config.title = "길찾기"
+        config.image = UIImage(systemName: "location.fill")
+        config.imagePadding = 4
+        config.imagePlacement = .leading
+        config.baseBackgroundColor = .retroBlue
+        config.baseForegroundColor = .white
+        config.cornerStyle = .medium
+        
+        let button = UIButton(configuration: config)
         button.layer.cornerRadius = 8
         button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 0)
         return button
     }()
     
     private let infoButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("정보", for: .normal)
-        button.setImage(UIImage(systemName: "info.circle.fill"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = .retroYellow
+        var config = UIButton.Configuration.filled()
+        config.title = "정보"
+        config.image = UIImage(systemName: "info.circle.fill")
+        config.imagePadding = 4
+        config.imagePlacement = .leading
+        config.baseBackgroundColor = .retroYellow
+        config.baseForegroundColor = .white
+        config.cornerStyle = .medium
+        
+        let button = UIButton(configuration: config)
         button.layer.cornerRadius = 8
         button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 0)
         return button
     }()
     

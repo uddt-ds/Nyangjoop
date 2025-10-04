@@ -37,6 +37,10 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 15
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.15
+        view.layer.shadowOffset = CGSize(width: 0, height: 2)
+        view.layer.shadowRadius = 4
         view.isHidden = true
         return view
     }()
@@ -96,17 +100,17 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     private func configureLayout() {
         catImageView.snp.makeConstraints { make in
             make.top.centerX.equalToSuperview()
-            make.size.equalTo(50)
+            make.size.equalTo(60)
         }
 
         bubbleContainerView.snp.makeConstraints { make in
             make.top.centerX.equalToSuperview()
-            make.size.equalTo(CGSize(width: 80, height: 65))
+            make.size.equalTo(CGSize(width: 90, height: 90))
         }
 
         bubbleImageView.snp.makeConstraints { make in
             make.center.equalToSuperview()
-            make.size.equalTo(CGSize(width: 70, height: 45))
+            make.size.equalTo(CGSize(width: 80, height: 80))
         }
 
         bubbleTailView.snp.makeConstraints { make in
@@ -124,12 +128,16 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
 
         tailPath.move(to: CGPoint(x: 6, y: 0))
         tailPath.addLine(to: CGPoint(x: 14, y: 0))
-        tailPath.addLine(to: CGPoint(x: 10, y: 12))
+        tailPath.addLine(to: CGPoint(x: 10, y: 6))
         tailPath.close()
 
         tailLayer.path = tailPath.cgPath
         tailLayer.fillColor = UIColor.white.cgColor
         tailLayer.strokeColor = UIColor.clear.cgColor
+        tailLayer.shadowColor = UIColor.black.cgColor
+        tailLayer.shadowOpacity = 0.15
+        tailLayer.shadowOffset = CGSize(width: 0, height: 2)
+        tailLayer.shadowRadius = 4
 
         bubbleTailView.layer.addSublayer(tailLayer)
     }
@@ -138,9 +146,9 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
         super.layoutSubviews()
 
         if isShowingPhoto {
-            self.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
+            self.frame = CGRect(x: 0, y: 0, width: 90, height: 90)
         } else {
-            self.frame = CGRect(x: 0, y: 0, width: 50, height: 50)
+            self.frame = CGRect(x: 0, y: 0, width: 60, height: 60)
         }
 
         self.centerOffset = CGPoint(x: 0, y: -self.frame.height / 2)
@@ -156,7 +164,7 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     func configure(with cat: Cat, showGalleryImage: Bool) {
         if showGalleryImage {
             isShowingPhoto = true
-            bounds = CGRect(x: 0, y: 0, width: 80, height: 80)
+            bounds = CGRect(x: 0, y: 0, width: 90, height: 90)
             if !cat.visitLogs.isEmpty, let filePath = cat.visitLogs.first?.filePath, !filePath.isEmpty {
                 showBubbleMode()
                 loadCatImage(from: filePath, into: bubbleImageView)
@@ -166,7 +174,7 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
             }
         } else {
             isShowingPhoto = false
-            bounds = CGRect(x: 0, y: 0, width: 50, height: 50)
+            bounds = CGRect(x: 0, y: 0, width: 60, height: 60)
             showDirectImageMode()
             catImageView.image = UIImage(named: cat.drawImage)
         }

@@ -41,7 +41,7 @@ final class CustomTabBar: UIView {
 
     // 첫 번째 서브 버튼 (Home - 왼쪽)
     private let homeButton: UIButton = {
-        let resizedImage = UIImage.home.resize(to: CGSize(width: 40, height: 40))
+        let resizedImage = UIImage.home.resize(to: CGSize(width: 36, height: 36))
         let button = UIButton()
         button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
@@ -53,7 +53,7 @@ final class CustomTabBar: UIView {
 
     // 두 번째 서브 버튼 (Register - 상단) - + 아이콘
     private let registerButton: UIButton = {
-        let resizedImage = UIImage.addCat.resize(to: CGSize(width: 40, height: 40))
+        let resizedImage = UIImage.addCat.resize(to: CGSize(width: 36, height: 36))
         let button = UIButton()
         button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
@@ -65,7 +65,7 @@ final class CustomTabBar: UIView {
 
     // 세 번째 서브 버튼 (Log - 오른쪽)
     private let logButton: UIButton = {
-        let resizedImage = UIImage.pencil.resize(to: CGSize(width: 40, height: 40))
+        let resizedImage = UIImage.pencil.resize(to: CGSize(width: 36, height: 36))
         let button = UIButton()
         button.setImage(resizedImage, for: .normal)
         button.backgroundColor = .key
