@@ -46,7 +46,6 @@ final class HomeViewController: BaseViewController {
         return button
     }()
 
-    // 클러스터링 제어
     private let clusteringThresholdZoom: Double = 0.015
     private var lastClusteringState: Bool = false
     private var isUpdatingAnnotations = false
@@ -81,7 +80,7 @@ final class HomeViewController: BaseViewController {
 
     private let storeToggleButton: UIButton = {
         let button = UIButton()
-        button.setImage(.fish, for: .normal)
+        button.setImage(.fishButton, for: .normal)
         button.backgroundColor = .white
         button.layer.cornerRadius = 10
         button.layer.borderWidth = 1
@@ -114,12 +113,22 @@ final class HomeViewController: BaseViewController {
         setupMapView()
         setupTapGesture()
         bind()
+        setupNotifications()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: true)
         viewWillAppearSubject.onNext(())
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        removeCurrentCalloutView()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func configureHierarchy() {
@@ -208,6 +217,30 @@ extension HomeViewController {
         tapGesture.delegate = self
         tapGesture.cancelsTouchesInView = false
         mapView.addGestureRecognizer(tapGesture)
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCatRegistered),
+            name: NSNotification.Name("CatRegistered"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleHideCallout),
+            name: NSNotification.Name("HideCallout"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleCatRegistered() {
+        viewWillAppearSubject.onNext(())
+    }
+    
+    @objc private func handleHideCallout() {
+        removeCurrentCalloutView()
     }
     
     @objc private func mapViewTapped(_ gesture: UITapGestureRecognizer) {
@@ -473,7 +506,6 @@ extension HomeViewController: MKMapViewDelegate {
 
             view.configure(with: catAnnotation.cat, showGalleryImage: isShowingGalleryMarkers)
             
-            // 지도 줌 레벨에 따라 클러스터링 제어
             let currentZoom = mapView.region.span.latitudeDelta
             let shouldEnableClustering = currentZoom > clusteringThresholdZoom
             
@@ -498,19 +530,16 @@ extension HomeViewController: MKMapViewDelegate {
         return nil
     }
 
-    // 지도 영역 변경 시 annotation 갱신 - 깜빡임 방지
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
         removeCurrentCalloutView()
     }
     
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-        // 이미 업데이트 중이면 무시
         guard !isUpdatingAnnotations else { return }
         
         let currentZoom = mapView.region.span.latitudeDelta
         let shouldEnableClustering = currentZoom > clusteringThresholdZoom
         
-        // 클러스터링 상태가 변경되었을 때만 업데이트
         guard shouldEnableClustering != lastClusteringState else { return }
         
         print("줌레벨: \(String(format: "%.4f", currentZoom)), 클러스터링: \(shouldEnableClustering ? "ON" : "OFF")")
@@ -518,18 +547,15 @@ extension HomeViewController: MKMapViewDelegate {
         lastClusteringState = shouldEnableClustering
         isUpdatingAnnotations = true
         
-        // annotation을 제거하고 다시 추가해야 클러스터링이 적용됨
         let catAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
         
         if !catAnnotations.isEmpty {
             mapView.removeAnnotations(catAnnotations)
             
-            // 즉시 다시 추가 (대기 시간 최소화)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 mapView.addAnnotations(catAnnotations)
                 
-                // 업데이트 완료 후 플래그 해제 (짧은 대기 시간)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.isUpdatingAnnotations = false
                 }
@@ -540,7 +566,6 @@ extension HomeViewController: MKMapViewDelegate {
     }
 
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        // 클러스터를 선택하면 확대
         if let clusterAnnotation = view.annotation as? MKClusterAnnotation {
             removeCurrentCalloutView()
             let memberAnnotations = clusterAnnotation.memberAnnotations
@@ -549,7 +574,6 @@ extension HomeViewController: MKMapViewDelegate {
             if coordinates.count > 0 {
                 var region = MKCoordinateRegion()
                 
-                // 모든 annotation을 포함하는 영역 계산
                 var minLat = coordinates[0].latitude
                 var maxLat = coordinates[0].latitude
                 var minLon = coordinates[0].longitude
@@ -574,9 +598,7 @@ extension HomeViewController: MKMapViewDelegate {
             return
         }
         
-        // 개별 고양이 선택
         if let catAnnotation = view.annotation as? CatAnnotation {
-            // 이미 선택된 고양이를 다시 누르면 callout 닫기
             if let selectedCat = selectedCat, selectedCat.id == catAnnotation.cat.id, currentCalloutView != nil {
                 removeCurrentCalloutView()
                 self.selectedCat = nil
