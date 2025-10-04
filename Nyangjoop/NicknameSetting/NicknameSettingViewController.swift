@@ -38,6 +38,16 @@ final class NicknameSettingViewController: BaseViewController {
         return textField
     }()
     
+    private let infoLabel: UILabel = {
+        let label = UILabel()
+        label.text = "닉네임은 12글자 이하만 가능합니다"
+        label.font = .systemFont(ofSize: 12)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private let maxNicknameLength = 12
+    
     private let saveButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("설정하기", for: .normal)
@@ -63,6 +73,7 @@ final class NicknameSettingViewController: BaseViewController {
         super.viewDidLoad()
         setupTitleLabel()
         setupActions()
+        setupTextFieldDelegate()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -75,7 +86,7 @@ final class NicknameSettingViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
         
-        [titleLabel, nicknameTextField, saveButton, skipButton].forEach {
+        [titleLabel, nicknameTextField, infoLabel, saveButton, skipButton].forEach {
             view.addSubview($0)
         }
     }
@@ -94,8 +105,13 @@ final class NicknameSettingViewController: BaseViewController {
             make.height.equalTo(48)
         }
         
+        infoLabel.snp.makeConstraints { make in
+            make.top.equalTo(nicknameTextField.snp.bottom).offset(8)
+            make.leading.equalTo(nicknameTextField).offset(4)
+        }
+        
         saveButton.snp.makeConstraints { make in
-            make.top.equalTo(nicknameTextField.snp.bottom).offset(24)
+            make.top.equalTo(infoLabel.snp.bottom).offset(24)
             make.leading.trailing.equalToSuperview().inset(24)
             make.height.equalTo(44)
         }
@@ -145,9 +161,48 @@ final class NicknameSettingViewController: BaseViewController {
         view.addGestureRecognizer(tapGesture)
     }
     
+    private func setupTextFieldDelegate() {
+        nicknameTextField.delegate = self
+        nicknameTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+    }
+    
+    @objc private func textFieldDidChange() {
+        guard let text = nicknameTextField.text else { return }
+        
+        if text.count > maxNicknameLength {
+            updateInfoLabel(message: "닉네임은 12글자 이하만 가능합니다", isError: true)
+        } else if containsSpecialCharacters(text) {
+            updateInfoLabel(message: "특수문자는 입력이 불가능합니다", isError: true)
+        } else {
+            updateInfoLabel(message: "닉네임은 12글자 이하만 가능합니다", isError: false)
+        }
+    }
+    
+    private func containsSpecialCharacters(_ text: String) -> Bool {
+        let pattern = "[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\\s]"
+        let regex = try? NSRegularExpression(pattern: pattern)
+        let range = NSRange(location: 0, length: text.utf16.count)
+        return regex?.firstMatch(in: text, range: range) != nil
+    }
+    
+    private func updateInfoLabel(message: String, isError: Bool) {
+        infoLabel.text = message
+        infoLabel.textColor = isError ? .systemRed : .secondaryLabel
+    }
+    
     @objc private func saveButtonTapped() {
         guard let nickname = nicknameTextField.text, !nickname.isEmpty else {
             showAlert(message: "닉네임을 입력해주세요")
+            return
+        }
+        
+        if nickname.count > maxNicknameLength {
+            showAlert(message: "닉네임은 12글자 이하로 입력해주세요")
+            return
+        }
+        
+        if containsSpecialCharacters(nickname) {
+            showAlert(message: "특수문자는 사용할 수 없습니다")
             return
         }
         
@@ -182,5 +237,18 @@ final class NicknameSettingViewController: BaseViewController {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+}
+
+extension NicknameSettingViewController: UITextFieldDelegate {
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard let text = textField.text else { return true }
+        let newText = (text as NSString).replacingCharacters(in: range, with: string)
+        return newText.count <= 12
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }
