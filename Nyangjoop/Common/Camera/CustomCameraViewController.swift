@@ -23,6 +23,7 @@ final class CustomCameraViewController: UIViewController {
     private var photoOutput: AVCapturePhotoOutput?
     private var currentCamera: AVCaptureDevice?
     private var currentZoomFactor: CGFloat = 1.0
+    private var isCapturing: Bool = false
     
     private let previewView: UIView = {
         let view = UIView()
@@ -235,6 +236,13 @@ final class CustomCameraViewController: UIViewController {
     
     @objc private func captureButtonTapped() {
         guard let photoOutput = photoOutput else { return }
+        guard !isCapturing else {
+            print("이미 촬영 중입니다")
+            return
+        }
+        
+        isCapturing = true
+        captureButton.isEnabled = false
         
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
@@ -314,12 +322,16 @@ extension CustomCameraViewController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
             print("사진 촬영 오류: \(error)")
+            isCapturing = false
+            captureButton.isEnabled = true
             return
         }
         
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
             print("이미지 변환 실패")
+            isCapturing = false
+            captureButton.isEnabled = true
             return
         }
         
@@ -345,6 +357,8 @@ extension CustomCameraViewController: PhotoPreviewDelegate {
     }
     
     func didCancelPhoto() {
+        isCapturing = false
+        captureButton.isEnabled = true
         delegate?.didRequestRetake()
     }
 }

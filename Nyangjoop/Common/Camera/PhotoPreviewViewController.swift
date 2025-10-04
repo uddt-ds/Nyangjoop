@@ -22,14 +22,18 @@ final class PhotoPreviewViewController: UIViewController {
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.backgroundColor = .black
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.isScrollEnabled = false
         return scrollView
     }()
     
     private let imageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleAspectFill
         imageView.backgroundColor = .black
         imageView.isUserInteractionEnabled = true
+        imageView.clipsToBounds = true
         return imageView
     }()
     
@@ -99,6 +103,11 @@ final class PhotoPreviewViewController: UIViewController {
         stickerCollectionView.dataSource = self
     }
     
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        imageView.frame = scrollView.bounds
+    }
+    
     private func setupUI() {
         view.backgroundColor = .black
         
@@ -117,7 +126,8 @@ final class PhotoPreviewViewController: UIViewController {
         
         imageView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
-            make.width.height.equalTo(scrollView)
+            make.width.equalTo(scrollView.snp.width)
+            make.height.equalTo(scrollView.snp.height)
         }
         
         canvasView.snp.makeConstraints { make in
@@ -173,21 +183,32 @@ final class PhotoPreviewViewController: UIViewController {
                                    y: canvasView.bounds.midY - 50,
                                    width: 100,
                                    height: 100)
+        stickerView.onDelete = { [weak self, weak stickerView] in
+            guard let self = self, let stickerView = stickerView,
+                  let index = self.stickers.firstIndex(of: stickerView) else { return }
+            self.stickers.remove(at: index)
+            UIView.animate(withDuration: 0.2, animations: {
+                stickerView.alpha = 0
+                stickerView.transform = stickerView.transform.scaledBy(x: 0.1, y: 0.1)
+            }) { _ in
+                stickerView.removeFromSuperview()
+            }
+        }
         
         canvasView.addSubview(stickerView)
         stickers.append(stickerView)
         
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        panGesture.delegate = self
         stickerView.addGestureRecognizer(panGesture)
         
         let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        pinchGesture.delegate = self
         stickerView.addGestureRecognizer(pinchGesture)
         
         let rotationGesture = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation(_:)))
+        rotationGesture.delegate = self
         stickerView.addGestureRecognizer(rotationGesture)
-        
-        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        stickerView.addGestureRecognizer(longPressGesture)
     }
     
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
@@ -214,34 +235,44 @@ final class PhotoPreviewViewController: UIViewController {
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began,
-              let stickerView = gesture.view as? PhotoStickerView else { return }
-        
-        if let index = stickers.firstIndex(of: stickerView) {
-            stickers.remove(at: index)
-        }
-        
-        UIView.animate(withDuration: 0.2, animations: {
-            stickerView.alpha = 0
-            stickerView.transform = stickerView.transform.scaledBy(x: 0.1, y: 0.1)
-        }) { _ in
-            stickerView.removeFromSuperview()
-        }
+        // 이 메서드는 더 이상 사용하지 않음 (삭제 버튼으로 대체)
     }
     
     private func renderEditedImage() -> UIImage {
-        // 렌더링 전에 모든 스티커의 border 숨기기
         stickers.forEach { $0.hideBorder() }
         
-        UIGraphicsBeginImageContextWithOptions(scrollView.bounds.size, false, 0)
+        let renderSize = scrollView.bounds.size
         
-        scrollView.drawHierarchy(in: scrollView.bounds, afterScreenUpdates: true)
-        canvasView.drawHierarchy(in: canvasView.bounds, afterScreenUpdates: true)
+        UIGraphicsBeginImageContextWithOptions(renderSize, false, 0)
+        guard let context = UIGraphicsGetCurrentContext() else {
+            stickers.forEach { $0.showBorder() }
+            return capturedImage
+        }
+        
+        let imageSize = capturedImage.size
+        let imageAspectRatio = imageSize.width / imageSize.height
+        let containerAspectRatio = renderSize.width / renderSize.height
+        
+        var drawRect: CGRect
+        if imageAspectRatio > containerAspectRatio {
+            let height = renderSize.height
+            let width = height * imageAspectRatio
+            let x = (renderSize.width - width) / 2
+            drawRect = CGRect(x: x, y: 0, width: width, height: height)
+        } else {
+            let width = renderSize.width
+            let height = width / imageAspectRatio
+            let y = (renderSize.height - height) / 2
+            drawRect = CGRect(x: 0, y: y, width: width, height: height)
+        }
+        
+        capturedImage.draw(in: drawRect)
+        
+        canvasView.layer.render(in: context)
         
         let image = UIGraphicsGetImageFromCurrentImageContext() ?? capturedImage
         UIGraphicsEndImageContext()
         
-        // 렌더링 후 스티커의 border 다시 보이기
         stickers.forEach { $0.showBorder() }
         
         return image
@@ -264,13 +295,32 @@ extension PhotoPreviewViewController: UICollectionViewDelegate, UICollectionView
     }
 }
 
+extension PhotoPreviewViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+
 final class PhotoStickerView: UIView {
+    
+    var onDelete: (() -> Void)?
     
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .white
         return imageView
+    }()
+    
+    private let deleteButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
+        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        button.layer.cornerRadius = 10
+        button.clipsToBounds = true
+        return button
     }()
     
     init(image: UIImage) {
@@ -286,20 +336,42 @@ final class PhotoStickerView: UIView {
     private func setupView() {
         backgroundColor = .clear
         addSubview(imageView)
+        addSubview(deleteButton)
+        
         imageView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.center.equalToSuperview()
+            make.width.height.equalTo(80)
         }
+        
+        deleteButton.snp.makeConstraints { make in
+            make.top.trailing.equalToSuperview()
+            make.size.equalTo(20)
+        }
+        
+        deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
+        
         isUserInteractionEnabled = true
         showBorder()
     }
     
+    @objc private func deleteButtonTapped() {
+        onDelete?()
+    }
+    
     func hideBorder() {
         layer.borderWidth = 0
+        deleteButton.isHidden = true
     }
     
     func showBorder() {
         layer.borderWidth = 2
         layer.borderColor = UIColor.key.cgColor
+        deleteButton.isHidden = false
+    }
+    
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let expandedBounds = bounds.insetBy(dx: -20, dy: -20)
+        return expandedBounds.contains(point)
     }
 }
 

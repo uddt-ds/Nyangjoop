@@ -23,6 +23,7 @@ final class PhotoPickerManager: NSObject {
     
     private weak var presentingViewController: UIViewController?
     private let selectedPhotoSubject = PublishSubject<PhotoWithMetadata>()
+    private let disposeBag = DisposeBag()
     
     var selectedPhoto: Observable<PhotoWithMetadata> {
         return selectedPhotoSubject.asObservable()
@@ -55,16 +56,10 @@ final class PhotoPickerManager: NSObject {
     private func presentCamera() {
         guard let presentingVC = presentingViewController else { return }
         
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            presentingVC.showErrorAlert(message: "카메라를 사용할 수 없습니다")
-            return
-        }
-        
-        let picker = UIImagePickerController()
-        picker.delegate = self
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        presentingVC.present(picker, animated: true)
+        let customCamera = CustomCameraViewController()
+        customCamera.delegate = self
+        customCamera.modalPresentationStyle = .fullScreen
+        presentingVC.present(customCamera, animated: false)
     }
     
     /// 사진 앨범 실행 (메타데이터 포함)
@@ -132,35 +127,14 @@ final class PhotoPickerManager: NSObject {
     }
 }
 
-// MARK: - UIImagePickerControllerDelegate
-extension PhotoPickerManager: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-
-        guard let image = info[.originalImage] as? UIImage else { return }
-
-        // 앨범에서 선택한 경우
-        if let imageURL = info[.imageURL] as? URL {
-            if let imageData = try? Data(contentsOf: imageURL) {
-                let metadata = extractMetadata(from: imageData)
-
-                let photoWithMetadata = PhotoWithMetadata(
-                    image: image,
-                    location: metadata.location,
-                    date: metadata.date ?? Date(),
-                    originalData: imageData
-                )
-
-                selectedPhotoSubject.onNext(photoWithMetadata)
-                return
-            }
-        }
-
-        // 카메라로 찍은 경우 - 현재 위치 가져오기
-        print("카메라로 찍은 사진 - 현재 위치 가져오는 중")
-
+// MARK: - CustomCameraDelegate
+extension PhotoPickerManager: CustomCameraDelegate {
+    func didCaptureImage(_ image: UIImage) {
+        
+        // 위치 권한이 있으면 현재 위치를 가져오고, 없으면 nil로 처리
         LocationManager.shared.getCurrentLocation(requestPermissionIfNeeded: false)
             .subscribe { location in
+                print("현재 위치 가져오기 성공: \(location.coordinate.latitude), \(location.coordinate.longitude)")
                 let photoWithMetadata = PhotoWithMetadata(
                     image: image,
                     location: location.coordinate,
@@ -170,8 +144,8 @@ extension PhotoPickerManager: UIImagePickerControllerDelegate, UINavigationContr
                 self.selectedPhotoSubject.onNext(photoWithMetadata)
 
             } onFailure: { error in
-                print("위치 가져오기 실패: \(error)")
-                // 위치 없이라도 사진은 전달
+                print("현재 위치 가져오기 실패 (권한 없음 또는 오류): \(error)")
+                // 위치 정보 없이 사진만 전달
                 let photoWithMetadata = PhotoWithMetadata(
                     image: image,
                     location: nil,
@@ -180,10 +154,11 @@ extension PhotoPickerManager: UIImagePickerControllerDelegate, UINavigationContr
                 )
                 self.selectedPhotoSubject.onNext(photoWithMetadata)
             }
+            .disposed(by: disposeBag)
     }
-
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true)
+    
+    func didRequestRetake() {
+        // 재촬영 요청 시 처리
     }
 }
 
