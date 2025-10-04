@@ -37,11 +37,17 @@ final class LogViewModel: ViewModelProtocol {
     private let selectedCatRelay = BehaviorRelay<Cat?>(value: nil)
 
     func transform(_ input: Input) -> Output {
+        // NotificationCenter로 데이터 갱신 트리거
+        let refreshTrigger = NotificationCenter.default.rx
+            .notification(NSNotification.Name("RefreshVisitLogs"))
+            .map { _ in () }
+        
         // viewDidLoad와 viewWillAppear 둘 다에서 데이터 로드
-        Observable.merge(input.viewDidLoad, input.viewWillAppear)
+        Observable.merge(input.viewDidLoad, input.viewWillAppear, refreshTrigger)
             .subscribe(with: self) { owner, _ in
                 owner.loadCats()
-                owner.loadAllVisitLogs()
+                // 현재 선택된 고양이에 맞는 데이터 로드
+                owner.loadVisitLogs(for: owner.selectedCatRelay.value)
             }
             .disposed(by: disposeBag)
 
@@ -104,18 +110,25 @@ final class LogViewModel: ViewModelProtocol {
     }
 
     private func loadAllVisitLogs() {
-        let visitLogs = Array(realmManager.fetchAllVisitLogs())
-            .sorted { $0.date > $1.date }
+        // Realm에서 최신 데이터를 가져와서 Array로 변환
+        let results = realmManager.fetchAllVisitLogs()
+        let visitLogs = Array(results)
         visitLogRelay.accept(visitLogs)
     }
 
     private func loadVisitLogs(for cat: Cat?) {
-        guard let cat else {
+        guard let cat = cat else {
             loadAllVisitLogs()
             return
         }
 
-        let visitLogs = Array(cat.visitLogs)
+        // Realm에서 최신 고양이 객체를 다시 가져오기
+        guard let freshCat = realmManager.fetchCat(by: cat.id) else {
+            loadAllVisitLogs()
+            return
+        }
+        
+        let visitLogs = Array(freshCat.visitLogs)
             .sorted { $0.date > $1.date }
         visitLogRelay.accept(visitLogs)
     }
