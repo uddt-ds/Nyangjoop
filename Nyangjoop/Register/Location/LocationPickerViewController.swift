@@ -27,7 +27,7 @@ final class LocationPickerViewController: UIViewController {
 
     private let centerPinImageView: UIImageView = {
         let view = UIImageView()
-        view.image = UIImage(systemName: "mappin.circle.fill")
+        view.image = UIImage(systemName: "mappin")
         view.tintColor = .systemRed
         view.contentMode = .scaleAspectFit
         return view
@@ -44,7 +44,7 @@ final class LocationPickerViewController: UIViewController {
     private let currentLocationButton: UIButton = {
         let button = UIButton()
         button.setImage(UIImage(systemName: "location.fill"), for: .normal)
-        button.backgroundColor = .systemBlue
+        button.backgroundColor = .key
         button.tintColor = .white
         button.layer.cornerRadius = 22
         button.layer.shadowColor = UIColor.black.cgColor
@@ -57,7 +57,7 @@ final class LocationPickerViewController: UIViewController {
     private lazy var selectButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("이 위치로 설정", for: .normal)
-        button.backgroundColor = .systemBlue
+        button.backgroundColor = .key
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
         button.titleLabel?.font = FontSystem.body.font
@@ -67,6 +67,7 @@ final class LocationPickerViewController: UIViewController {
 
     private let locationManager = LocationManager.shared
     private let geocoder = CLGeocoder()
+    private var currentAddress: String = ""
     private var currentCoordinate: CLLocationCoordinate2D?
 
     override func viewDidLoad() {
@@ -79,7 +80,7 @@ final class LocationPickerViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = .systemBackground
 
-        [mapView, centerPinImageView, addressLabel, currentLocationButton, selectButton].forEach {
+        [mapView, centerPinImageView, currentLocationButton, selectButton].forEach {
             view.addSubview($0)
         }
 
@@ -90,18 +91,12 @@ final class LocationPickerViewController: UIViewController {
 
         centerPinImageView.snp.makeConstraints { make in
             make.centerX.equalTo(mapView)
-            make.centerY.equalTo(mapView).offset(-15)
-            make.size.equalTo(30)
-        }
-
-        addressLabel.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(20)
-            make.leading.trailing.equalToSuperview().inset(40)
-            make.height.greaterThanOrEqualTo(50)
+            make.centerY.equalTo(mapView).offset(-20)
+            make.size.equalTo(40)
         }
 
         currentLocationButton.snp.makeConstraints { make in
-            make.top.equalTo(addressLabel.snp.top).offset(-20)
+            make.bottom.equalTo(selectButton.snp.top).offset(-20)
             make.trailing.equalToSuperview().offset(-20)
             make.size.equalTo(44)
         }
@@ -118,11 +113,14 @@ final class LocationPickerViewController: UIViewController {
 
     private func setupNavigationBar() {
         title = "위치 선택"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .cancel,
+        let closeButton = UIBarButtonItem(
+            image: UIImage(systemName: "xmark"),
+            style: .plain,
             target: self,
             action: #selector(cancelButtonTapped)
         )
+        closeButton.tintColor = .systemGray
+        navigationItem.leftBarButtonItem = closeButton
     }
 
     private func setupMapView() {
@@ -159,12 +157,12 @@ final class LocationPickerViewController: UIViewController {
 
                 if let error = error {
                     print("Geocoding error: \(error)")
-                    self.addressLabel.text = "주소를 가져올 수 없습니다"
+                    self.currentAddress = "주소를 가져올 수 없습니다"
                     return
                 }
 
                 guard let placemark = placemarks?.first else {
-                    self.addressLabel.text = "주소를 찾을 수 없습니다"
+                    self.currentAddress = "주소를 찾을 수 없습니다"
                     return
                 }
 
@@ -177,16 +175,15 @@ final class LocationPickerViewController: UIViewController {
                 if let subThoroughfare = placemark.subThoroughfare { addressComponents.append(subThoroughfare) }
 
                 let address = addressComponents.isEmpty ? "주소 정보 없음" : addressComponents.joined(separator: " ")
-                self.addressLabel.text = address
+                self.currentAddress = address
             }
         }
     }
 
     @objc private func selectButtonTapped() {
-        guard let coordinate = currentCoordinate,
-              let address = addressLabel.text else { return }
+        guard let coordinate = currentCoordinate else { return }
 
-        delegate?.didSelectLocation(coordinate: coordinate, address: address)
+        delegate?.didSelectLocation(coordinate: coordinate, address: currentAddress)
 
         dismiss(animated: true)
     }
