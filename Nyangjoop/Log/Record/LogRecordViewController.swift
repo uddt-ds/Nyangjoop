@@ -61,13 +61,15 @@ final class LogRecordViewController: BaseViewController {
     }()
 
     private let catSelectionButton: UIButton = {
-         let button = UIButton(type: .system)
-         button.backgroundColor = .white
-         button.layer.cornerRadius = 16
-         button.layer.borderWidth = 1
-         button.layer.borderColor = UIColor.systemGray5.cgColor
+         var config = UIButton.Configuration.plain()
+         config.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
+         config.background.backgroundColor = .white
+         config.background.cornerRadius = 16
+         config.background.strokeWidth = 1
+         config.background.strokeColor = .systemGray5
+         
+         let button = UIButton(configuration: config)
          button.contentHorizontalAlignment = .left
-         button.contentEdgeInsets = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
          return button
      }()
 

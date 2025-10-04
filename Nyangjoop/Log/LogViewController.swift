@@ -62,6 +62,16 @@ final class LogViewController: BaseViewController {
         button.tintColor = .key
         return button
     }()
+    
+    private let emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.text = "함께 쌓은 추억이 없습니다"
+        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.isHidden = true
+        return label
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,7 +86,7 @@ final class LogViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
 
-        [titleLabel, catSelectionCollectionView, logCollectionView, addLogButton].forEach {
+        [titleLabel, catSelectionCollectionView, logCollectionView, addLogButton, emptyStateLabel].forEach {
             view.addSubview($0)
         }
     }
@@ -102,6 +112,10 @@ final class LogViewController: BaseViewController {
             make.top.equalTo(titleLabel.snp.top)
             make.trailing.equalToSuperview().offset(-20)
             make.size.equalTo(44)
+        }
+        
+        emptyStateLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
         }
     }
 
@@ -156,6 +170,13 @@ extension LogViewController {
             .disposed(by: disposeBag)
 
         // 방문 기록 CollectionView 바인딩
+        output.visitLogs
+            .drive(with: self) { owner, visitLogs in
+                owner.emptyStateLabel.isHidden = !visitLogs.isEmpty
+                owner.logCollectionView.isHidden = visitLogs.isEmpty
+            }
+            .disposed(by: disposeBag)
+        
         output.visitLogs
             .drive(logCollectionView.rx.items(
                 cellIdentifier: LogRecordCell.identifier,

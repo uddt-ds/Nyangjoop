@@ -215,7 +215,7 @@ final class NicknameSettingViewController: BaseViewController {
     }
     
     @objc private func skipButtonTapped() {
-        UserDefaults.standard.set("냥집사", forKey: "nickname")
+        UserDefaults.standard.set("묘험가", forKey: "nickname")
         navigateToMainScreen()
     }
     

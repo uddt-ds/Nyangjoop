@@ -160,8 +160,10 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         
         if let memo = visitLog.memo, !memo.isEmpty {
             memoLabel.text = memo
+            memoLabel.isHidden = false
         } else {
-            memoLabel.text = "집 근처 참외네..."
+            memoLabel.text = ""
+            memoLabel.isHidden = true
         }
     }
 
