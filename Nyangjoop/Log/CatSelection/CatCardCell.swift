@@ -76,7 +76,7 @@ final class CatCardCell: UICollectionViewCell, IdentifierProtocol {
         nameLabel.text = cat.name
 
         if cat.name == "전체" {
-            photoImageView.image = UIImage(systemName: "square.grid.2x2")
+            photoImageView.image = .totalCat
             photoImageView.tintColor = .systemBlue
             photoImageView.contentMode = .scaleAspectFit
             photoImageView.backgroundColor = isSelected ? .systemBlue.withAlphaComponent(0.1) : .systemGray4

@@ -10,12 +10,28 @@ import SnapKit
 
 final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     
+    private let selectionCircle: UIView = {
+        let view = UIView()
+        view.backgroundColor = .key
+        view.layer.cornerRadius = 30
+        view.isHidden = true
+        return view
+    }()
+    
+    private let backgroundImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "catBackground")
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = false
+        imageView.layer.masksToBounds = false
+        imageView.isHidden = true
+        return imageView
+    }()
+    
     private let catImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.backgroundColor = .systemGray5
-        imageView.layer.cornerRadius = 30  // 60 / 2
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = false
         return imageView
     }()
     
@@ -30,9 +46,7 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     private let selectionBorder: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
-        view.layer.borderWidth = 3
-        view.layer.borderColor = UIColor.systemBlue.cgColor
-        view.layer.cornerRadius = 33  // 66 / 2
+        view.layer.cornerRadius = 33
         view.isHidden = true
         return view
     }()
@@ -50,7 +64,7 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     }
     
     private func configureHierarchy() {
-        [selectionBorder, catImageView, nameLabel].forEach {
+        [selectionBorder, selectionCircle, backgroundImageView, catImageView, nameLabel].forEach {
             contentView.addSubview($0)
         }
     }
@@ -59,6 +73,16 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         selectionBorder.snp.makeConstraints { make in
             make.top.centerX.equalToSuperview()
             make.size.equalTo(66)
+        }
+        
+        selectionCircle.snp.makeConstraints { make in
+            make.center.equalTo(selectionBorder)
+            make.size.equalTo(60)
+        }
+        
+        backgroundImageView.snp.makeConstraints { make in
+            make.center.equalTo(selectionBorder)
+            make.size.equalTo(60)
         }
         
         catImageView.snp.makeConstraints { make in
@@ -79,37 +103,39 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     
     override func prepareForReuse() {
         super.prepareForReuse()
-        // 재사용 시 이미지 초기화
         catImageView.image = nil
-        catImageView.contentMode = .scaleAspectFill
+        catImageView.contentMode = .scaleAspectFit
         nameLabel.text = nil
         selectionBorder.isHidden = true
+        backgroundImageView.isHidden = true
+        selectionCircle.isHidden = true
     }
     
     func configure(with cat: Cat?, isSelected: Bool) {
-        // cat이 nil이면 "전체" 표시
         if let cat = cat {
             nameLabel.text = cat.name
-            catImageView.contentMode = .scaleAspectFill
+            catImageView.contentMode = .scaleAspectFit
             
-            // 고양이 이미지 설정
             if let image = UIImage(named: cat.drawImage) {
                 catImageView.image = image
             } else {
                 catImageView.image = UIImage(systemName: "cat.fill")
                 catImageView.tintColor = .systemGray3
             }
+            
+            backgroundImageView.isHidden = !isSelected
+            selectionCircle.isHidden = true
         } else {
-            // "전체" 셀
             nameLabel.text = "전체"
-            catImageView.image = UIImage(systemName: "square.grid.2x2")
-            catImageView.tintColor = .systemBlue
+            catImageView.image = .totalCat
+            catImageView.tintColor = nil
             catImageView.contentMode = .scaleAspectFit
+            backgroundImageView.isHidden = !isSelected
+            selectionCircle.isHidden = true
         }
         
-        // 선택 상태 표시
         selectionBorder.isHidden = !isSelected
-        nameLabel.textColor = isSelected ? .systemBlue : .label
+        nameLabel.textColor = isSelected ? .key : .label
         nameLabel.font = isSelected ? .systemFont(ofSize: 12, weight: .bold) : .systemFont(ofSize: 12, weight: .medium)
     }
 }
