@@ -30,7 +30,7 @@ final class CatCalloutView: UIView {
     
     private let catNameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .bold)
+        label.font = FontSystem.body.font
         label.textColor = .black
         label.textAlignment = .center
         return label
@@ -53,10 +53,14 @@ final class CatCalloutView: UIView {
         config.baseBackgroundColor = .retroBlue
         config.baseForegroundColor = .white
         config.cornerStyle = .medium
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = FontSystem.caption.font
+            return outgoing
+        }
         
         let button = UIButton(configuration: config)
         button.layer.cornerRadius = 8
-        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         return button
     }()
     
@@ -69,10 +73,14 @@ final class CatCalloutView: UIView {
         config.baseBackgroundColor = .retroYellow
         config.baseForegroundColor = .white
         config.cornerStyle = .medium
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = FontSystem.caption.font
+            return outgoing
+        }
         
         let button = UIButton(configuration: config)
         button.layer.cornerRadius = 8
-        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         return button
     }()
     

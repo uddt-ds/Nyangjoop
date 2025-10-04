@@ -39,7 +39,7 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     
     private let dateLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.font = FontSystem.caption.font
         label.textColor = .white
         label.textAlignment = .right
         return label
@@ -61,7 +61,7 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     
     private let catNameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.numberOfLines = 1
         return label
@@ -69,7 +69,7 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     
     private let memoLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 12)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.numberOfLines = 1
         return label

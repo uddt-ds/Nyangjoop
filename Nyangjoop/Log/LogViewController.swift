@@ -18,7 +18,7 @@ final class LogViewController: BaseViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "기록하기"
-        label.font = .systemFont(ofSize: 28, weight: .bold)
+        label.font = FontSystem.main.font
         label.textColor = .label
         return label
     }()
@@ -66,7 +66,7 @@ final class LogViewController: BaseViewController {
     private let emptyStateLabel: UILabel = {
         let label = UILabel()
         label.text = "함께 쌓은 추억이 없습니다"
-        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.font = FontSystem.body.font
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.isHidden = true

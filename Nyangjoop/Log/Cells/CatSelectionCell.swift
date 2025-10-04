@@ -37,7 +37,7 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
     
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textAlignment = .center
         label.textColor = .label
         return label
@@ -136,6 +136,6 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         
         selectionBorder.isHidden = !isSelected
         nameLabel.textColor = isSelected ? .key : .label
-        nameLabel.font = isSelected ? .systemFont(ofSize: 12, weight: .bold) : .systemFont(ofSize: 12, weight: .medium)
+        nameLabel.font = FontSystem.caption.font
     }
 }

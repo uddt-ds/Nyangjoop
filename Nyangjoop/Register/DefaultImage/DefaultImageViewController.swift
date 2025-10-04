@@ -21,7 +21,7 @@ final class DefaultImageViewController: BaseViewController {
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: createCompositionalLayout())
-        collectionView.backgroundColor = .systemBackground
+        collectionView.backgroundColor = .clear
         collectionView.allowsSelection = true
         collectionView.register(DefaultImageCell.self, forCellWithReuseIdentifier: DefaultImageCell.identifier)
         return collectionView
@@ -33,7 +33,7 @@ final class DefaultImageViewController: BaseViewController {
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        button.titleLabel?.font = FontSystem.body.font
         button.isEnabled = false
         return button
     }()
@@ -60,6 +60,10 @@ final class DefaultImageViewController: BaseViewController {
         super.configureLayout()
         configureBackgroundForCenterModal()
     }
+    
+    override func configureView() {
+        view.backgroundColor = .clear
+    }
 
     private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
         return UICollectionViewCompositionalLayout { _, _ in
@@ -82,7 +86,7 @@ final class DefaultImageViewController: BaseViewController {
         view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
 
         let containerView = UIView()
-        containerView.backgroundColor = .systemBackground
+        containerView.backgroundColor = .white
         containerView.layer.cornerRadius = 16
         containerView.layer.shadowColor = UIColor.black.cgColor
         containerView.layer.shadowOffset = CGSize(width: 0, height: 4)
@@ -148,7 +152,7 @@ extension DefaultImageViewController {
         output.isSelectButtonEnabled
             .drive(with: self) { owner, isEnabled in
                 owner.selectButton.isEnabled = isEnabled
-                owner.selectButton.backgroundColor = isEnabled ? .systemBlue : .systemGray4
+                owner.selectButton.backgroundColor = isEnabled ? .key : .systemGray4
             }
             .disposed(by: disposeBag)
 

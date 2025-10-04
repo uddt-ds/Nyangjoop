@@ -46,7 +46,7 @@ final class CatRegisterViewController: BaseViewController {
     private let imageSectionLabel: UILabel = {
         let label = UILabel()
         label.text = "이미지 *"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -54,7 +54,7 @@ final class CatRegisterViewController: BaseViewController {
     private let imageSectionDescLabel: UILabel = {
         let label = UILabel()
         label.text = "실제 사진과 지도 표시용 아이콘을 함께 선택해주세요"
-        label.font = .systemFont(ofSize: 13)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.numberOfLines = 0
         return label
@@ -67,7 +67,7 @@ final class CatRegisterViewController: BaseViewController {
     private let photoLabel: UILabel = {
         let label = UILabel()
         label.text = "실제 사진"
-        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.textAlignment = .center
         return label
@@ -112,7 +112,7 @@ final class CatRegisterViewController: BaseViewController {
         let label = UILabel()
         label.text = "사진 선택"
         label.textColor = .appTitle
-        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textAlignment = .center
         return label
     }()
@@ -122,7 +122,7 @@ final class CatRegisterViewController: BaseViewController {
     private let defaultImageLabel: UILabel = {
         let label = UILabel()
         label.text = "지도 표시 아이콘"
-        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.textAlignment = .center
         return label
@@ -165,7 +165,7 @@ final class CatRegisterViewController: BaseViewController {
         let label = UILabel()
         label.text = "아이콘 선택"
         label.textColor = .appTitle
-        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.font = FontSystem.caption.font
         label.textAlignment = .center
         return label
     }()
@@ -173,7 +173,7 @@ final class CatRegisterViewController: BaseViewController {
     private let nameHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "이름 *"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -181,7 +181,7 @@ final class CatRegisterViewController: BaseViewController {
     private let nameTextField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "고양이 이름을 입력해주세요"
-        textField.font = .systemFont(ofSize: 16)
+        textField.font = FontSystem.body.font
         textField.backgroundColor = .clear
         textField.borderStyle = .none
         return textField
@@ -196,7 +196,7 @@ final class CatRegisterViewController: BaseViewController {
     private let genderHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "성별 *"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -214,9 +214,13 @@ final class CatRegisterViewController: BaseViewController {
         config.title = "남아"
         config.baseForegroundColor = .appTitle
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = FontSystem.body.font
+            return outgoing
+        }
         
         let button = UIButton(configuration: config)
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         button.layer.cornerRadius = 22
         button.layer.borderWidth = 0
         button.layer.borderColor = UIColor.key.cgColor
@@ -229,9 +233,13 @@ final class CatRegisterViewController: BaseViewController {
         config.title = "여아"
         config.baseForegroundColor = .appTitle
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = FontSystem.body.font
+            return outgoing
+        }
         
         let button = UIButton(configuration: config)
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         button.layer.cornerRadius = 22
         button.layer.borderWidth = 0
         button.layer.borderColor = UIColor.key.cgColor
@@ -244,9 +252,13 @@ final class CatRegisterViewController: BaseViewController {
         config.title = "모름"
         config.baseForegroundColor = .appTitle
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = FontSystem.body.font
+            return outgoing
+        }
         
         let button = UIButton(configuration: config)
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         button.layer.cornerRadius = 22
         button.layer.borderWidth = 0
         button.layer.borderColor = UIColor.key.cgColor
@@ -257,7 +269,7 @@ final class CatRegisterViewController: BaseViewController {
     private let characterHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "성격"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -279,7 +291,7 @@ final class CatRegisterViewController: BaseViewController {
     private let locationHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "발견 장소 *"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -287,7 +299,7 @@ final class CatRegisterViewController: BaseViewController {
     private let locationLabel: UILabel = {
         let label = UILabel()
         label.text = "위치 정보를 가져오는 중..."
-        label.font = .systemFont(ofSize: 14)
+        label.font = FontSystem.caption.font
         label.textColor = .appTitle
         label.numberOfLines = 2
         return label
@@ -298,7 +310,7 @@ final class CatRegisterViewController: BaseViewController {
         button.setTitle("위치 설정", for: .normal)
         button.backgroundColor = .key
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+        button.titleLabel?.font = FontSystem.caption.font
         button.layer.cornerRadius = 8
         return button
     }()
@@ -306,7 +318,7 @@ final class CatRegisterViewController: BaseViewController {
     private let dateHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "만난 날짜 *"
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = FontSystem.main.font
         label.textColor = .appTitle
         return label
     }()
@@ -326,7 +338,7 @@ final class CatRegisterViewController: BaseViewController {
         button.setTitle("등록하기", for: .normal)
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = .boldSystemFont(ofSize: 17)
+        button.titleLabel?.font = FontSystem.main.font
         button.layer.cornerRadius = 12
         button.isEnabled = false
         return button
@@ -564,7 +576,7 @@ final class CatRegisterViewController: BaseViewController {
         
         let titleLabel = UILabel()
         titleLabel.text = "고양이 등록"
-        titleLabel.font = .boldSystemFont(ofSize: 20)
+        titleLabel.font = FontSystem.main.font
         titleLabel.textColor = .label
         
         let containerView = UIView()

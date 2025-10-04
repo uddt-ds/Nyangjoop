@@ -35,16 +35,7 @@ enum FontName {
     case caption
 
     var name: String {
-        switch self {
-        case .main:
-            return "Pretendard-Bold"
-        case .sub:
-            return "Pretendard-SemiBold"
-        case .body:
-            return "Pretendard-Regular"
-        case .caption:
-            return "Pretendard-Light"
-        }
+        return "MemomentKkukkukkR"
     }
 
     var size: CGFloat {

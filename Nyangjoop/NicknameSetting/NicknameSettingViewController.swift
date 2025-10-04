@@ -14,7 +14,6 @@ final class NicknameSettingViewController: BaseViewController {
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 18, weight: .medium)
         label.numberOfLines = 0
         return label
     }()
@@ -140,11 +139,12 @@ final class NicknameSettingViewController: BaseViewController {
 
             // 앞부분: key 컬러
             let beforeRange = NSRange(location: 0, length: beforeComma.count)
+            attributedString.addAttribute(.font, value: FontSystem.main.font, range: beforeRange)
             attributedString.addAttribute(.foregroundColor, value: UIColor(named: "key") ?? .systemOrange, range: beforeRange)
             
-            // "," 포함 뒷부분: appTitle 컬러
+            // "," 포함 뒷부분: appTitle 컬러 + body2 폰트
             let afterRange = NSRange(location: beforeComma.count, length: fullText.count - beforeComma.count)
-            attributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 14), range: afterRange)
+            attributedString.addAttribute(.font, value: FontSystem.body.font, range: afterRange)
             attributedString.addAttribute(.foregroundColor, value: UIColor(named: "appTitle") ?? .label, range: afterRange)
         }
         

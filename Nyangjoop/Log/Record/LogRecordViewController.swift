@@ -36,7 +36,7 @@ final class LogRecordViewController: BaseViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "기록 추가"
-        label.font = .systemFont(ofSize: 24, weight: .bold)
+        label.font = FontSystem.main.font
         label.textColor = .label
         return label
     }()
@@ -46,7 +46,7 @@ final class LogRecordViewController: BaseViewController {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy. MM. dd"
         label.text = formatter.string(from: Date())
-        label.font = .systemFont(ofSize: 16)
+        label.font = FontSystem.body.font
         label.textAlignment = .center
         label.textColor = .secondaryLabel
         return label
@@ -55,7 +55,7 @@ final class LogRecordViewController: BaseViewController {
     private let catHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "고양이 선택 *"
-        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.font = FontSystem.body.font
         label.textColor = .label
         return label
     }()
@@ -76,7 +76,7 @@ final class LogRecordViewController: BaseViewController {
      private let catNameLabel: UILabel = {
          let label = UILabel()
          label.text = "고양이를 선택하세요"
-         label.font = .systemFont(ofSize: 16)
+         label.font = FontSystem.body.font
          label.textColor = .systemGray2
          return label
      }()
@@ -92,7 +92,7 @@ final class LogRecordViewController: BaseViewController {
     private let photoHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "사진 선택 *"
-        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.font = FontSystem.body.font
         label.textColor = .label
         return label
     }()
@@ -119,7 +119,7 @@ final class LogRecordViewController: BaseViewController {
     private let photoPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "사진 등록하기"
-        label.font = .systemFont(ofSize: 18, weight: .medium)
+        label.font = FontSystem.sub.font
         label.textColor = .systemGray3
         label.textAlignment = .center
         return label
@@ -134,7 +134,7 @@ final class LogRecordViewController: BaseViewController {
     private let memoHeaderLabel: UILabel = {
         let label = UILabel()
         label.text = "메모 작성"
-        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.font = FontSystem.body.font
         label.textColor = .label
         return label
     }()
@@ -150,7 +150,7 @@ final class LogRecordViewController: BaseViewController {
 
     private lazy var memoTextView: UITextView = {
         let textView = UITextView()
-        textView.font = .systemFont(ofSize: 16)
+        textView.font = FontSystem.body.font
         textView.textColor = .label
         textView.backgroundColor = .clear
         textView.delegate = self
@@ -162,7 +162,7 @@ final class LogRecordViewController: BaseViewController {
     private let memoPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "메모를 입력하세요"
-        label.font = .systemFont(ofSize: 16)
+        label.font = FontSystem.body.font
         label.textColor = .systemGray3
         return label
     }()
@@ -173,7 +173,7 @@ final class LogRecordViewController: BaseViewController {
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 17)
+        button.titleLabel?.font = FontSystem.main.font
         button.isEnabled = false
         return button
     }()

@@ -30,7 +30,7 @@ final class CatSelectionViewController: BaseViewController {
         let label = UILabel()
         label.text = "등록된 고양이가 없습니다"
         label.textColor = .systemGray
-        label.font = .systemFont(ofSize: 16)
+        label.font = FontSystem.body.font
         label.textAlignment = .center
         label.isHidden = true
         return label
@@ -61,7 +61,7 @@ final class CatSelectionViewController: BaseViewController {
     }
 
     override func configureView() {
-        super.configureView()
+        view.backgroundColor = .appBg
     }
 
     private func setupNavigationBar() {
