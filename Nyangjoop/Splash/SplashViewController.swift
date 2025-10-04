@@ -40,8 +40,26 @@ final class SplashViewController: BaseViewController {
 
     private func navigateToNextScreen() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.showNicknameViewController()
+            self?.checkNicknameAndNavigate()
         }
+    }
+    
+    private func checkNicknameAndNavigate() {
+        if let nickname = UserDefaults.standard.string(forKey: "nickname"), !nickname.isEmpty {
+            showMainViewController()
+        } else {
+            showNicknameViewController()
+        }
+    }
+    
+    private func showMainViewController() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else { return }
+        
+        let tabBarController = CustomTabBarController()
+        window.rootViewController = tabBarController
+        
+        UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
     }
     
     private func showNicknameViewController() {
