@@ -31,6 +31,6 @@ class BaseViewController: UIViewController {
     func configureLayout() { }
 
     func configureView() {
-        view.backgroundColor = .white
+        view.backgroundColor = .appBg
     }
 }
