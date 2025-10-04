@@ -221,7 +221,7 @@ final class CatRegisterViewModel: ViewModelProtocol {
             }
 
             // 실제 사진 필수 체크
-            guard let selectedImage = self.selectedImage else {
+            guard self.selectedImage != nil else {
                 observer.onNext(.failure(CatRegisterError.missingPhoto))
                 observer.onCompleted()
                 return Disposables.create()

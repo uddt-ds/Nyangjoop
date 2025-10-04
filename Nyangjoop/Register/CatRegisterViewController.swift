@@ -776,7 +776,10 @@ extension CatRegisterViewController {
 
     private func showRegistrationSuccessAlert() {
         showSuccessAlert(message: "고양이가 성공적으로 등록되었습니다!") { [weak self] in
-            self?.dismiss(animated: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NotificationCenter.default.post(name: NSNotification.Name("CatRegistered"), object: nil)
+                self?.dismiss(animated: true)
+            }
         }
     }
     
