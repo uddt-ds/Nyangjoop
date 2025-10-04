@@ -137,16 +137,6 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .share()
         
-        // 간식 가게 검색 실패 시 상태 초기화
-        let storeSearchFailed = storeLocationResult
-            .compactMap { result -> Void? in
-                if case .failure = result {
-                    return ()
-                }
-                return nil
-            }
-            .share()
-        
         // 간식 가게 버튼 권한 거부 alert
         let showStoreLocationPermissionAlert = storeLocationResult
             .compactMap { result -> Void? in

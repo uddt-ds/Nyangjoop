@@ -53,8 +53,7 @@ final class HomeViewController: BaseViewController {
     private let mapView: MKMapView = {
         let mapView = MKMapView()
         mapView.showsUserLocation = true
-        mapView.userTrackingMode = .none
-        mapView.showsCompass = false
+        mapView.userTrackingMode = .followWithHeading
         return mapView
     }()
 
@@ -245,7 +244,6 @@ extension HomeViewController {
     
     @objc private func mapViewTapped(_ gesture: UITapGestureRecognizer) {
         let location = gesture.location(in: mapView)
-        let coordinate = mapView.convert(location, toCoordinateFrom: mapView)
         
         print("Map tapped at: \(location)")
         
