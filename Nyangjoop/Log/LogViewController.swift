@@ -57,14 +57,9 @@ final class LogViewController: BaseViewController {
 
     private let addLogButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "pencil"), for: .normal)
-        button.backgroundColor = .retroBlue
-        button.tintColor = .white
-        button.layer.cornerRadius = 22
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 8
-        button.layer.shadowOpacity = 0.3
+        button.setImage(UIImage(systemName: "square.and.pencil"), for: .normal)
+        button.backgroundColor = .clear
+        button.tintColor = .key
         return button
     }()
 
@@ -104,32 +99,31 @@ final class LogViewController: BaseViewController {
         }
 
         addLogButton.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.top)
             make.trailing.equalToSuperview().offset(-20)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-40)
             make.size.equalTo(44)
         }
     }
 
     private func createGridLayout() -> UICollectionViewLayout {
-        // 2x2 그리드 레이아웃
-        let spacing: CGFloat = 8
+        let spacing: CGFloat = 12
         
         let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1/2),
+            widthDimension: .fractionalWidth(0.5),
             heightDimension: .fractionalHeight(1.0)
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalWidth(0.5)  // 정사각형 비율 유지
+            heightDimension: .fractionalWidth(0.65)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
         group.interItemSpacing = .fixed(spacing)
 
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = spacing
-        section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 14, bottom: 100, trailing: 14)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 100, trailing: 20)
         
         return UICollectionViewCompositionalLayout(section: section)
     }
@@ -182,7 +176,14 @@ extension LogViewController {
         let logRecordVC = LogRecordViewController()
         logRecordVC.selectedCat = selectedCat
         let nav = UINavigationController(rootViewController: logRecordVC)
-        nav.modalPresentationStyle = .formSheet
+        nav.modalPresentationStyle = .pageSheet
+        
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
+        }
+        
         present(nav, animated: true)
     }
 }
