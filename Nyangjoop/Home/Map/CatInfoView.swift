@@ -16,89 +16,101 @@ final class CatInfoView: UIView {
     
     weak var delegate: CatInfoViewDelegate?
     
-    private let containerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 20
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOpacity = 0.3
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 12
-        return view
+    private let backgroundImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "catIdCard")
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = true
+        return imageView
     }()
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "고양이등록증"
-        label.font = .boldSystemFont(ofSize: 20)
+        label.text = "고양이 등록증"
+        label.font = FontSystem.main.font
         label.textAlignment = .center
         label.textColor = .label
         return label
+    }()
+    
+    private let photoContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 20
+        view.layer.borderWidth = 2
+        view.layer.borderColor = UIColor.systemGray4.cgColor
+        return view
     }()
     
     private let photoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 80
-        imageView.layer.borderWidth = 3
-        imageView.layer.borderColor = UIColor.systemGray5.cgColor
+        imageView.layer.cornerRadius = 16
         imageView.backgroundColor = .systemGray6
         return imageView
     }()
     
-    private let nameContainerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
-        return view
-    }()
-    
-    private let nameLabel: UILabel = {
+    private let characterLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 18, weight: .semibold)
+        label.font = FontSystem.main.font
         label.textAlignment = .center
         label.textColor = .label
         return label
     }()
     
-    private let genderContainerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
-        return view
+    private let genderStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.alignment = .center
+        return stack
     }()
     
-    private let genderLabel: UILabel = {
+    private let genderTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16)
-        label.textAlignment = .center
+        label.text = "성별: "
+        label.font = FontSystem.body.font
         label.textColor = .label
         return label
     }()
     
-    private let daysContainerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemGray6
-        view.layer.cornerRadius = 12
-        return view
+    private let genderValueLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSystem.body.font
+        label.textColor = .label
+        return label
     }()
     
-    private let daysLabel: UILabel = {
+    private let daysStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.alignment = .center
+        return stack
+    }()
+    
+    private let daysTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16)
-        label.textAlignment = .center
+        label.text = "만난지"
+        label.font = FontSystem.body.font
+        label.textColor = .label
+        return label
+    }()
+    
+    private let daysValueLabel: UILabel = {
+        let label = UILabel()
+        label.font = FontSystem.body.font
         label.textColor = .label
         return label
     }()
     
     private let confirmButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("확인", for: .normal)
-        button.titleLabel?.font = .boldSystemFont(ofSize: 18)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 12
+        button.setTitle("확 인", for: .normal)
+        button.titleLabel?.font = FontSystem.main.font
+        button.backgroundColor = .clear
+        button.setTitleColor(.label, for: .normal)
         return button
     }()
     
@@ -115,72 +127,69 @@ final class CatInfoView: UIView {
     private func setupView() {
         backgroundColor = UIColor.black.withAlphaComponent(0.5)
         
-        addSubview(containerView)
+        addSubview(backgroundImageView)
         
-        [titleLabel, photoImageView, nameContainerView, genderContainerView, daysContainerView, confirmButton].forEach {
-            containerView.addSubview($0)
+        [titleLabel, photoContainerView, characterLabel, genderStackView, daysStackView, confirmButton].forEach {
+            backgroundImageView.addSubview($0)
         }
         
-        nameContainerView.addSubview(nameLabel)
-        genderContainerView.addSubview(genderLabel)
-        daysContainerView.addSubview(daysLabel)
+        photoContainerView.addSubview(photoImageView)
+        
+        [genderTitleLabel, genderValueLabel].forEach {
+            genderStackView.addArrangedSubview($0)
+        }
+        
+        [daysTitleLabel, daysValueLabel].forEach {
+            daysStackView.addArrangedSubview($0)
+        }
         
         setupLayout()
         setupActions()
     }
     
     private func setupLayout() {
-        containerView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.leading.trailing.equalToSuperview().inset(40)
+        backgroundImageView.snp.makeConstraints { make in
+            make.top.equalToSuperview()
+            make.centerX.equalToSuperview()
+            make.width.equalTo(340)
+            make.height.equalTo(540)
         }
         
         titleLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(24)
-            make.leading.trailing.equalToSuperview().inset(20)
+            make.top.equalToSuperview().offset(150)
+            make.centerX.equalToSuperview()
+        }
+        
+        photoContainerView.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(30)
+            make.centerX.equalToSuperview()
+            make.width.height.equalTo(180)
         }
         
         photoImageView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(20)
+            make.edges.equalToSuperview().inset(4)
+        }
+        
+        characterLabel.snp.makeConstraints { make in
+            make.top.equalTo(photoContainerView.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
-            make.size.equalTo(160)
         }
         
-        nameContainerView.snp.makeConstraints { make in
-            make.top.equalTo(photoImageView.snp.bottom).offset(24)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(50)
+        genderStackView.snp.makeConstraints { make in
+            make.top.equalTo(characterLabel.snp.bottom).offset(12)
+            make.centerX.equalToSuperview()
         }
         
-        nameLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-        }
-        
-        genderContainerView.snp.makeConstraints { make in
-            make.top.equalTo(nameContainerView.snp.bottom).offset(12)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(50)
-        }
-        
-        genderLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-        }
-        
-        daysContainerView.snp.makeConstraints { make in
-            make.top.equalTo(genderContainerView.snp.bottom).offset(12)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(50)
-        }
-        
-        daysLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
+        daysStackView.snp.makeConstraints { make in
+            make.top.equalTo(genderStackView.snp.bottom).offset(12)
+            make.centerX.equalToSuperview()
         }
         
         confirmButton.snp.makeConstraints { make in
-            make.top.equalTo(daysContainerView.snp.bottom).offset(24)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(50)
-            make.bottom.equalToSuperview().offset(-24)
+            make.bottom.equalToSuperview().offset(-10)
+            make.centerX.equalToSuperview()
+            make.height.equalTo(44)
+            make.width.equalTo(100)
         }
     }
     
@@ -193,15 +202,24 @@ final class CatInfoView: UIView {
     }
     
     @objc private func confirmButtonTapped() {
-        delegate?.catInfoViewDidTapConfirm()
+        animateDismiss()
     }
     
     @objc private func backgroundTapped() {
-        delegate?.catInfoViewDidTapConfirm()
+        animateDismiss()
+    }
+    
+    private func animateDismiss() {
+        UIView.animate(withDuration: 0.3, animations: {
+            self.backgroundImageView.transform = CGAffineTransform(translationX: 0, y: -self.bounds.height)
+            self.alpha = 0
+        }) { _ in
+            self.delegate?.catInfoViewDidTapConfirm()
+        }
     }
     
     func configure(with cat: Cat) {
-        nameLabel.text = cat.name
+        characterLabel.text = cat.name
         
         let genderText: String
         switch cat.gender {
@@ -210,21 +228,33 @@ final class CatInfoView: UIView {
         case 1:
             genderText = "여아"
         default:
-            genderText = "알 수 없음"
+            genderText = "모름"
         }
-        genderLabel.text = "성별: \(genderText)"
+        genderValueLabel.text = genderText
         
         if let firstMeetDate = cat.firstVisitDate {
             let days = Calendar.current.dateComponents([.day], from: firstMeetDate, to: Date()).day ?? 0
-            daysLabel.text = "만난지 \(days)일"
+            daysValueLabel.text = "D+\(days)일째"
         } else {
-            daysLabel.text = "만난지 0일"
+            daysValueLabel.text = "D+0일째"
         }
         
         if let imagePath = cat.visitLogs.first?.filePath, !imagePath.isEmpty {
             loadCatImage(from: imagePath)
         } else {
             photoImageView.image = UIImage(named: cat.drawImage)
+        }
+        
+        animateIn()
+    }
+    
+    private func animateIn() {
+        backgroundImageView.transform = CGAffineTransform(translationX: 0, y: -bounds.height)
+        alpha = 0
+        
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.backgroundImageView.transform = .identity
+            self.alpha = 1
         }
     }
     
