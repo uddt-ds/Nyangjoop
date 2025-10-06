@@ -19,6 +19,8 @@ final class CustomTabBarController: UIViewController {
             updateSelectedViewController()
         }
     }
+    
+    private var indexBeforeModal: Int = 0
 
     private let containerView: UIView = {
         let view = UIView()
@@ -108,7 +110,8 @@ final class CustomTabBarController: UIViewController {
     private func presentCatRegisterViewController() {
         print("CatRegisterViewController 생성 시작")
         
-        // HomeViewController에 callout 숨기기 알림 전송
+        indexBeforeModal = selectedIndex
+        
         NotificationCenter.default.post(name: NSNotification.Name("HideCallout"), object: nil)
         
         let catRegisterVC = CatRegisterViewController()
@@ -140,9 +143,10 @@ final class CustomTabBarController: UIViewController {
 
 extension CustomTabBarController: UIAdaptivePresentationControllerDelegate {
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
-        selectedIndex = 0
+        selectedIndex = indexBeforeModal
         
-        if let homeNav = viewControllers.first as? UINavigationController,
+        if indexBeforeModal == 0,
+           let homeNav = viewControllers.first as? UINavigationController,
            let homeVC = homeNav.viewControllers.first as? HomeViewController {
             homeVC.viewWillAppear(false)
         }
