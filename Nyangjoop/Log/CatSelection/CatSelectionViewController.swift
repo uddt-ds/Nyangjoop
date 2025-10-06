@@ -40,6 +40,11 @@ final class CatSelectionViewController: BaseViewController {
         super.viewDidLoad()
         setupNavigationBar()
         loadCats()
+        setupNotificationObserver()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func configureHierarchy() {
@@ -103,6 +108,19 @@ final class CatSelectionViewController: BaseViewController {
 
         emptyLabel.isHidden = !cats.isEmpty
         collectionView.reloadData()
+    }
+    
+    private func setupNotificationObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCatRegistered),
+            name: NSNotification.Name("CatRegistered"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleCatRegistered() {
+        loadCats()
     }
 
     @objc private func closeButtonTapped() {
