@@ -45,11 +45,12 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         return label
     }()
     
-    private let infoContainerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 8
-        return view
+    private let catInfoStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.alignment = .center
+        return stack
     }()
     
     private let catIconImageView: UIImageView = {
@@ -69,9 +70,9 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     
     private let memoLabel: UILabel = {
         let label = UILabel()
-        label.font = FontSystem.caption.font
+        label.font = UIFont(name: "MemomentKkukkukkR", size: 10) ?? .systemFont(ofSize: 10)
         label.textColor = .appTitle
-        label.numberOfLines = 1
+        label.numberOfLines = 0
         return label
     }()
 
@@ -88,63 +89,68 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
 
     private func configureHierarchy() {
         contentView.addSubview(containerView)
-        [imageView, overlayView, dateLabel, infoContainerView].forEach {
+        
+        [imageView, catInfoStackView, memoLabel].forEach {
             containerView.addSubview($0)
         }
-        [catIconImageView, catNameLabel, memoLabel].forEach {
-            infoContainerView.addSubview($0)
+        
+        [overlayView, dateLabel].forEach {
+            imageView.addSubview($0)
+        }
+        
+        [catIconImageView, catNameLabel].forEach {
+            catInfoStackView.addArrangedSubview($0)
         }
     }
 
     private func configureLayout() {
         containerView.snp.makeConstraints { make in
-            make.edges.equalToSuperview().inset(4)
+            make.top.leading.trailing.equalToSuperview().inset(4)
+            make.bottom.equalTo(memoLabel.snp.bottom).offset(12)
         }
 
         imageView.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview().inset(8)
-            make.height.equalTo(containerView.snp.width).multipliedBy(0.7)
+            make.height.equalTo(150)
         }
         
         overlayView.snp.makeConstraints { make in
-            make.edges.equalTo(imageView)
+            make.edges.equalToSuperview()
         }
         
         dateLabel.snp.makeConstraints { make in
-            make.trailing.bottom.equalTo(imageView).inset(8)
+            make.trailing.bottom.equalToSuperview().inset(8)
         }
         
-        infoContainerView.snp.makeConstraints { make in
+        catInfoStackView.snp.makeConstraints { make in
             make.top.equalTo(imageView.snp.bottom).offset(8)
-            make.leading.trailing.bottom.equalToSuperview().inset(8)
+            make.leading.trailing.equalToSuperview().inset(12)
+            make.height.equalTo(24)
         }
         
         catIconImageView.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(8)
-            make.top.equalToSuperview().offset(8)
             make.size.equalTo(24)
         }
         
-        catNameLabel.snp.makeConstraints { make in
-            make.leading.equalTo(catIconImageView.snp.trailing).offset(8)
-            make.trailing.equalToSuperview().offset(-8)
-            make.centerY.equalTo(catIconImageView)
+        memoLabel.snp.makeConstraints { make in
+            make.top.equalTo(catInfoStackView.snp.bottom).offset(8)
+            make.leading.trailing.equalToSuperview().inset(12)
         }
         
-        memoLabel.snp.makeConstraints { make in
-            make.leading.equalTo(catIconImageView.snp.trailing).offset(8)
-            make.trailing.equalToSuperview().offset(-8)
-            make.top.equalTo(catNameLabel.snp.bottom).offset(2)
-            make.bottom.equalToSuperview().offset(-4)
-        }
+        memoLabel.setContentHuggingPriority(.required, for: .vertical)
+        memoLabel.setContentCompressionResistancePriority(.required, for: .vertical)
     }
 
-    func configure(with visitLog: VisitLog) {
+    func configure(with visitLog: VisitLog, imageHeight: CGFloat) {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy. MM. dd"
         dateLabel.text = formatter.string(from: visitLog.date)
 
         loadImage(from: visitLog.filePath)
+        
+        imageView.snp.updateConstraints { make in
+            make.height.equalTo(imageHeight)
+        }
         
         if let cat = visitLog.cat {
             catNameLabel.text = cat.name
@@ -165,6 +171,52 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
             memoLabel.text = ""
             memoLabel.isHidden = true
         }
+        
+        setNeedsLayout()
+        layoutIfNeeded()
+    }
+    
+    func calculateHeight(for visitLog: VisitLog, width: CGFloat) -> CGFloat {
+        let imageHeight = calculateImageHeight(from: visitLog.filePath, targetWidth: width - 16)
+        let catInfoHeight: CGFloat = 24
+        let imagePadding: CGFloat = 16
+        let catInfoTopPadding: CGFloat = 8
+        let memoTopPadding: CGFloat = 8
+        let bottomPadding: CGFloat = 12
+        
+        if let memo = visitLog.memo, !memo.isEmpty {
+            let memoWidth = width - 32
+            let memoFont = UIFont(name: "MemomentKkukkukkR", size: 10) ?? .systemFont(ofSize: 10)
+            let memoHeight = calculateTextHeight(text: memo, width: memoWidth, font: memoFont)
+            return imageHeight + imagePadding + catInfoHeight + catInfoTopPadding + memoTopPadding + memoHeight + bottomPadding
+        } else {
+            return imageHeight + imagePadding + catInfoHeight + catInfoTopPadding + bottomPadding
+        }
+    }
+    
+    private func calculateTextHeight(text: String, width: CGFloat, font: UIFont) -> CGFloat {
+        let constraintRect = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let boundingBox = text.boundingRect(
+            with: constraintRect,
+            options: .usesLineFragmentOrigin,
+            attributes: [.font: font],
+            context: nil
+        )
+        return ceil(boundingBox.height)
+    }
+    
+    func calculateImageHeight(from filePath: String, targetWidth: CGFloat) -> CGFloat {
+        guard !filePath.isEmpty else { return targetWidth * 0.7 }
+        
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let fullPath = documentsPath.appending(path: filePath)
+        
+        guard let image = UIImage(contentsOfFile: fullPath.path()) else {
+            return targetWidth * 0.7
+        }
+        
+        let aspectRatio = image.size.height / image.size.width
+        return targetWidth * aspectRatio
     }
 
     private func loadImage(from filePath: String) {

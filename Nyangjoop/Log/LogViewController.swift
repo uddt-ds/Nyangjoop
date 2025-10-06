@@ -14,6 +14,7 @@ final class LogViewController: BaseViewController {
     private let viewModel = LogViewModel()
 
     private let viewWillAppearSubject = PublishSubject<Void>()
+    private var visitLogsCache: [VisitLog] = []
 
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -48,9 +49,12 @@ final class LogViewController: BaseViewController {
     }
 
     private lazy var logCollectionView: UICollectionView = {
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: createGridLayout())
+        let layout = WaterfallLayout()
+        layout.delegate = self
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.contentInset = UIEdgeInsets(top: 12, left: 10, bottom: 100, right: 10)
         collectionView.register(LogRecordCell.self, forCellWithReuseIdentifier: LogRecordCell.identifier)
         return collectionView
     }()
@@ -75,7 +79,12 @@ final class LogViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupCollectionView()
         bind()
+    }
+    
+    private func setupCollectionView() {
+        logCollectionView.dataSource = self
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -119,28 +128,7 @@ final class LogViewController: BaseViewController {
         }
     }
 
-    private func createGridLayout() -> UICollectionViewLayout {
-        let spacing: CGFloat = 12
-        
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(0.5),
-            heightDimension: .fractionalHeight(1.0)
-        )
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let groupSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalWidth(0.65)
-        )
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-        group.interItemSpacing = .fixed(spacing)
-
-        let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = spacing
-        section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 100, trailing: 20)
-        
-        return UICollectionViewCompositionalLayout(section: section)
-    }
 }
 
 // MARK: Rx binding
@@ -172,17 +160,10 @@ extension LogViewController {
         // 방문 기록 CollectionView 바인딩
         output.visitLogs
             .drive(with: self) { owner, visitLogs in
+                owner.visitLogsCache = visitLogs
                 owner.emptyStateLabel.isHidden = !visitLogs.isEmpty
                 owner.logCollectionView.isHidden = visitLogs.isEmpty
-            }
-            .disposed(by: disposeBag)
-        
-        output.visitLogs
-            .drive(logCollectionView.rx.items(
-                cellIdentifier: LogRecordCell.identifier,
-                cellType: LogRecordCell.self
-            )) { index, visitLog, cell in
-                cell.configure(with: visitLog)
+                owner.logCollectionView.reloadData()
             }
             .disposed(by: disposeBag)
 
@@ -206,5 +187,39 @@ extension LogViewController {
         }
         
         present(nav, animated: true)
+    }
+}
+
+extension LogViewController: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return visitLogsCache.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: LogRecordCell.identifier,
+            for: indexPath
+        ) as? LogRecordCell else {
+            return UICollectionViewCell()
+        }
+        
+        let visitLog = visitLogsCache[indexPath.item]
+        let cellWidth = (collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right) / 2
+        
+        let dummyCell = LogRecordCell()
+        let imageHeight = dummyCell.calculateImageHeight(from: visitLog.filePath, targetWidth: cellWidth - 16)
+        
+        cell.configure(with: visitLog, imageHeight: imageHeight)
+        return cell
+    }
+}
+
+extension LogViewController: WaterfallLayoutDelegate {
+    func collectionView(_ collectionView: UICollectionView, heightForItemAt indexPath: IndexPath) -> CGFloat {
+        let visitLog = visitLogsCache[indexPath.item]
+        let cellWidth = (collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right) / 2
+        
+        let dummyCell = LogRecordCell()
+        return dummyCell.calculateHeight(for: visitLog, width: cellWidth - 8)
     }
 }
