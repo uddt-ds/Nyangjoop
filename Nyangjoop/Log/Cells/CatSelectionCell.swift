@@ -93,7 +93,7 @@ final class CatSelectionCell: UICollectionViewCell, IdentifierProtocol {
         nameLabel.snp.makeConstraints { make in
             make.top.equalTo(selectionBorder.snp.bottom).offset(4)
             make.leading.trailing.equalToSuperview()
-            make.height.equalTo(14)
+            make.bottom.equalToSuperview()
         }
     }
     

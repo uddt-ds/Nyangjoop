@@ -19,7 +19,7 @@ final class DefaultImageCell: UICollectionViewCell, IdentifierProtocol {
 
      private let selectionOverlay: UIView = {
          let view = UIView()
-         view.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3)
+         view.backgroundColor = UIColor.key.withAlphaComponent(0.3)
          view.layer.cornerRadius = 12
          view.isHidden = true
          return view
@@ -28,7 +28,7 @@ final class DefaultImageCell: UICollectionViewCell, IdentifierProtocol {
      private let checkmarkImageView: UIImageView = {
          let imageView = UIImageView()
          imageView.image = UIImage(systemName: "checkmark.circle.fill")
-         imageView.tintColor = .systemBlue
+         imageView.tintColor = .key
          imageView.backgroundColor = .white
          imageView.layer.cornerRadius = 12
          imageView.isHidden = true
@@ -84,7 +84,7 @@ final class DefaultImageCell: UICollectionViewCell, IdentifierProtocol {
         checkmarkImageView.isHidden = !isSelected
 
         layer.borderWidth = isSelected ? 2 : 0
-        layer.borderColor = isSelected ? UIColor.systemBlue.cgColor : UIColor.clear.cgColor
+        layer.borderColor = isSelected ? UIColor.key.cgColor : UIColor.clear.cgColor
         layer.cornerRadius = 12
     }
 

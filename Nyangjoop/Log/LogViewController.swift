@@ -34,10 +34,10 @@ final class LogViewController: BaseViewController {
     }()
 
     private func createCatSelectionLayout() -> UICollectionViewLayout {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(80), heightDimension: .absolute(100))
+        let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(80), heightDimension: .estimated(84))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(80), heightDimension: .absolute(100))
+        let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(80), heightDimension: .estimated(84))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
 
         let section = NSCollectionLayoutSection(group: group)
@@ -54,7 +54,7 @@ final class LogViewController: BaseViewController {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
-        collectionView.contentInset = UIEdgeInsets(top: 12, left: 10, bottom: 100, right: 10)
+        collectionView.contentInset = UIEdgeInsets(top: 0, left: 10, bottom: 100, right: 10)
         collectionView.register(LogRecordCell.self, forCellWithReuseIdentifier: LogRecordCell.identifier)
         return collectionView
     }()
@@ -109,7 +109,7 @@ final class LogViewController: BaseViewController {
         catSelectionCollectionView.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(16)
             make.leading.trailing.equalToSuperview()
-            make.height.equalTo(100)
+            make.height.equalTo(84)
         }
 
         logCollectionView.snp.makeConstraints { make in
@@ -147,7 +147,6 @@ extension LogViewController {
 
         let output = viewModel.transform(input)
 
-        // 고양이 선택 CollectionView 바인딩
         output.catsWithSelection
             .drive(catSelectionCollectionView.rx.items(
                 cellIdentifier: CatSelectionCell.identifier,
@@ -157,7 +156,6 @@ extension LogViewController {
             }
             .disposed(by: disposeBag)
 
-        // 방문 기록 CollectionView 바인딩
         output.visitLogs
             .drive(with: self) { owner, visitLogs in
                 owner.visitLogsCache = visitLogs
