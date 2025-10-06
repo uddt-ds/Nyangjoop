@@ -60,7 +60,7 @@ final class LocationPickerViewController: UIViewController {
         button.backgroundColor = .key
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = FontSystem.body.font
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.addTarget(self, action: #selector(selectButtonTapped), for: .touchUpInside)
         return button
     }()

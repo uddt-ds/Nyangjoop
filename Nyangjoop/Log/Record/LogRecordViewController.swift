@@ -173,7 +173,7 @@ final class LogRecordViewController: BaseViewController {
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = FontSystem.main.font
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         button.isEnabled = false
         return button
     }()

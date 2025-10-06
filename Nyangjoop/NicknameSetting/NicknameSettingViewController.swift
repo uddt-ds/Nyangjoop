@@ -61,7 +61,7 @@ final class NicknameSettingViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setTitle("그냥 묘험가로 할게", for: .normal)
         button.setTitleColor(.appTitle, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 14)
+        button.titleLabel?.font = FontSystem.caption.font
         button.backgroundColor = .clear
         return button
     }()
@@ -99,7 +99,7 @@ final class NicknameSettingViewController: BaseViewController {
         }
         
         nicknameTextField.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(24)
+            make.top.equalTo(titleLabel.snp.bottom).offset(12)
             make.leading.trailing.equalToSuperview().inset(24)
             make.height.equalTo(48)
         }
@@ -116,9 +116,9 @@ final class NicknameSettingViewController: BaseViewController {
         }
         
         skipButton.snp.makeConstraints { make in
-            make.top.equalTo(saveButton.snp.bottom).offset(12)
+            make.top.equalTo(saveButton.snp.bottom)
             make.centerX.equalToSuperview()
-            make.height.equalTo(44)
+            make.height.equalTo(36)
         }
     }
     

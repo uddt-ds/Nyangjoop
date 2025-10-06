@@ -310,7 +310,7 @@ final class CatRegisterViewController: BaseViewController {
         button.setTitle("위치 설정", for: .normal)
         button.backgroundColor = .key
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = FontSystem.caption.font
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.layer.cornerRadius = 8
         return button
     }()
@@ -338,7 +338,7 @@ final class CatRegisterViewController: BaseViewController {
         button.setTitle("등록하기", for: .normal)
         button.backgroundColor = .systemGray4
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = FontSystem.main.font
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         button.layer.cornerRadius = 12
         button.isEnabled = false
         return button
