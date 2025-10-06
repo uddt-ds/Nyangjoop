@@ -178,12 +178,13 @@ final class CatRegisterViewController: BaseViewController {
         return label
     }()
 
-    private let nameTextField: UITextField = {
+    private lazy var nameTextField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "고양이 이름을 입력해주세요"
         textField.font = FontSystem.body.font
         textField.backgroundColor = .clear
         textField.borderStyle = .none
+        textField.delegate = self
         return textField
     }()
     
@@ -329,6 +330,7 @@ final class CatRegisterViewController: BaseViewController {
         datePicker.preferredDatePickerStyle = .compact
         datePicker.date = Date()
         datePicker.backgroundColor = .white
+        datePicker.maximumDate = .now
         datePicker.layer.cornerRadius = 8
         return datePicker
     }()
@@ -351,6 +353,9 @@ final class CatRegisterViewController: BaseViewController {
         setupGestures()
         setupGenderButtons()
         selectDefaultCharacter()
+        selectGenderButton(unknownGenderButton)
+        genderSelectedSubject.onNext(2)
+
         bind()
     }
 
@@ -836,5 +841,11 @@ extension CatRegisterViewController: DefaultImageDelegate {
     func didSelectDefaultImage(_ image: UIImage, imageName: String) {
         defaultImageSelectedSubject.onNext(imageName)
         displaySelectedDefaultImage(image)
+    }
+}
+
+extension CatRegisterViewController: UITextFieldDelegate {
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        resignFirstResponder()
     }
 }
