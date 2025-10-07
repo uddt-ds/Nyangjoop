@@ -107,6 +107,10 @@ final class HomeViewController: BaseViewController {
         return button
     }()
 
+    private weak var currentCallOutView: CatCalloutView?
+    private var isCalloutTransitioning = false
+    private var calloutAnimator: UIViewPropertyAnimator?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
@@ -416,61 +420,80 @@ extension HomeViewController {
     }
     
     private func showCalloutView(for cat: Cat) {
-        print("showCalloutView called for: \(cat.name)")
-        removeCurrentCalloutView()
-        
-        guard let catAnnotation = mapView.annotations.compactMap({ $0 as? CatAnnotation }).first(where: { $0.cat.id == cat.id }) else {
-            print("어노테이션을 찾을 수 없음")
-            return
-        }
-        
+        if isCalloutTransitioning { return }
+
+        view.subviews.compactMap { $0 as? CatCalloutView }.forEach { $0.removeFromSuperview() }
+        currentCalloutView = nil
+
+        guard let catAnnotation = mapView.annotations
+            .compactMap({ $0 as? CatAnnotation })
+            .first(where: { $0.cat.id == cat.id }) else { return }
+
         let calloutView = CatCalloutView()
         calloutView.delegate = self
         calloutView.configure(with: cat.name)
-        
-        view.addSubview(calloutView)
-        print("Callout view added to view hierarchy")
-        
-        let annotationPoint = mapView.convert(catAnnotation.coordinate, toPointTo: view)
-        print("Annotation point: \(annotationPoint)")
-        
-        calloutView.snp.makeConstraints { make in
-            make.centerX.equalTo(view.snp.leading).offset(annotationPoint.x)
-            make.bottom.equalTo(view.snp.top).offset(annotationPoint.y - 60)
-            make.width.equalTo(200)
-        }
-        
-        view.layoutIfNeeded()
-        print("Callout frame after layout: \(calloutView.frame)")
-        
         calloutView.alpha = 0
         calloutView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
-        
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
-            calloutView.alpha = 1
-            calloutView.transform = .identity
-            print("Animation started")
-        } completion: { _ in
-            print("Animation completed")
+        calloutView.isUserInteractionEnabled = false
+
+        view.addSubview(calloutView)
+
+        let pointTo = mapView.convert(catAnnotation.coordinate, toPointTo: view)
+        calloutView.snp.makeConstraints { make in
+            make.centerX.equalTo(view.snp.leading).offset(pointTo.x)
+            make.bottom.equalTo(view.snp.top).offset(pointTo.y - 60)
+            make.width.equalTo(200)
         }
-        
-        currentCalloutView = calloutView
-    }
-    
-    private func removeCurrentCalloutView() {
-        guard let callout = currentCalloutView else { return }
-        print("removeCurrentCalloutView called")
-        
-        UIView.animate(withDuration: 0.2) {
-            callout.alpha = 0
-            callout.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
-        } completion: { _ in
-            callout.removeFromSuperview()
-            self.currentCalloutView = nil
-            print("Callout removed")
-        }
+        view.layoutIfNeeded()
+
+        isCalloutTransitioning = true
+        let animator = UIViewPropertyAnimator(duration: 0.3, dampingRatio: 0.7) {
+                calloutView.alpha = 1
+                calloutView.transform = .identity
+            }
+            animator.addCompletion { [weak self] _ in
+                calloutView.isUserInteractionEnabled = true
+                self?.isCalloutTransitioning = false
+                self?.calloutAnimator = nil
+            }
+            calloutAnimator = animator
+            animator.startAnimation()
+
+            currentCalloutView = calloutView
     }
 
+    private func removeCurrentCalloutView(animated: Bool = true, completion: (() -> Void)? = nil) {
+        guard let callout = currentCalloutView else {
+            completion?()
+            return
+        }
+
+        callout.layer.removeAllAnimations()
+        calloutAnimator?.stopAnimation(true)
+        calloutAnimator = nil
+
+        isCalloutTransitioning = true
+        callout.isUserInteractionEnabled = false
+
+        let finish: () -> Void = { [weak self] in
+            callout.removeFromSuperview()
+            self?.currentCalloutView = nil
+            self?.isCalloutTransitioning = false
+            completion?()
+        }
+
+        if animated {
+            let animator = UIViewPropertyAnimator(duration: 0.2, curve: .easeIn) {
+                callout.alpha = 0
+                callout.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            }
+            animator.addCompletion { _ in finish() }
+            calloutAnimator = animator
+            animator.startAnimation()
+        } else {
+            finish()
+        }
+    }
     private func pushProfile() {
         let profileVC = ProfileViewController()
         navigationController?.pushViewController(profileVC, animated: true)
