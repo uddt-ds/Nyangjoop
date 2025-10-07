@@ -39,6 +39,7 @@ final class HomeViewModel: ViewModelProtocol {
         let showProfileView: Driver<Void>
         let storeData: Driver<[MarketModel]>
         let isShowingStores: Driver<Bool>
+        let storeResultMessage: Driver<String>
     }
 
     func transform(_ input: Input) -> Output {
@@ -158,7 +159,7 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
 
-        let storeData = storeLocationResult
+        let storeDataResult = storeLocationResult
             .compactMap { result -> CLLocationCoordinate2D? in
                 return try? result.get().coordinate
             }
@@ -179,7 +180,20 @@ final class HomeViewModel: ViewModelProtocol {
                     }
                 }
             }
+            .share()
+        
+        let storeData = storeDataResult
             .asDriver(onErrorJustReturn: [])
+        
+        let storeResultMessage = storeDataResult
+            .map { markets -> String in
+                if markets.isEmpty {
+                    return "근처에 간식 가게가 없어요"
+                } else {
+                    return "간식 가게를 \(markets.count)개 찾았어요"
+                }
+            }
+            .asDriver(onErrorJustReturn: "")
 
         let showProfileView = input.profileTapped
             .asDriver(onErrorJustReturn: ())
@@ -194,7 +208,8 @@ final class HomeViewModel: ViewModelProtocol {
                       showCatDetail: showCatDetail,
                       showProfileView: showProfileView,
                       storeData: storeData,
-                      isShowingStores: isShowingStores.asDriver(onErrorJustReturn: false)
+                      isShowingStores: isShowingStores.asDriver(onErrorJustReturn: false),
+                      storeResultMessage: storeResultMessage
                     )
     }
 }

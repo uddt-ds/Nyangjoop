@@ -10,6 +10,7 @@ import SnapKit
 import MapKit
 import RxSwift
 import RxCocoa
+import Toast
 
 final class HomeViewController: BaseViewController {
 
@@ -348,6 +349,13 @@ extension HomeViewController {
             }
             .disposed(by: disposeBag)
         
+        output.storeResultMessage
+            .filter { !$0.isEmpty }
+            .drive(with: self) { owner, message in
+                owner.showToast(message: message)
+            }
+            .disposed(by: disposeBag)
+        
         clearRouteButton.rx.tap
             .subscribe(with: self) { owner, _ in
                 owner.clearRoute()
@@ -537,6 +545,10 @@ extension HomeViewController {
     private func pushProfile() {
         let profileVC = ProfileViewController()
         navigationController?.pushViewController(profileVC, animated: true)
+    }
+    
+    private func showToast(message: String) {
+        view.makeToast(message, duration: 2.0, position: .top)
     }
 }
 

@@ -15,6 +15,7 @@
 		9BCB02B72E8A8E52005493A9 /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB02322E86AFBD005493A9 /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB03672E8BAF25005493A9 /* Alamofire */; };
 		9BCB09712E90B596005493A9 /* IQKeyboardManagerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB09702E90B596005493A9 /* IQKeyboardManagerSwift */; };
+		9BCEACB32E95CFC200024B99 /* Toast in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEACB22E95CFC200024B99 /* Toast */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -61,6 +62,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9BCEACB32E95CFC200024B99 /* Toast in Frameworks */,
 				9BCB09712E90B596005493A9 /* IQKeyboardManagerSwift in Frameworks */,
 				9BCB01EE2E868968005493A9 /* RxRelay in Frameworks */,
 				9BCB01EC2E868968005493A9 /* RxCocoa in Frameworks */,
@@ -118,6 +120,7 @@
 				9BCB02322E86AFBD005493A9 /* RealmSwift */,
 				9BCB03672E8BAF25005493A9 /* Alamofire */,
 				9BCB09702E90B596005493A9 /* IQKeyboardManagerSwift */,
+				9BCEACB22E95CFC200024B99 /* Toast */,
 			);
 			productName = Nyangjoop;
 			productReference = 9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */;
@@ -153,6 +156,7 @@
 				9BCB02312E86AFBD005493A9 /* XCRemoteSwiftPackageReference "realm-swift" */,
 				9BCB03662E8BAF25005493A9 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				9BCB096F2E90B596005493A9 /* XCRemoteSwiftPackageReference "IQKeyboardManager" */,
+				9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BCBFD932E84C4A3005493A9 /* Products */;
@@ -452,6 +456,14 @@
 				minimumVersion = 8.0.1;
 			};
 		};
+		9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scalessec/Toast-Swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -489,6 +501,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9BCB096F2E90B596005493A9 /* XCRemoteSwiftPackageReference "IQKeyboardManager" */;
 			productName = IQKeyboardManagerSwift;
+		};
+		9BCEACB22E95CFC200024B99 /* Toast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */;
+			productName = Toast;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
