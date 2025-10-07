@@ -125,10 +125,14 @@ final class LocationPickerViewController: UIViewController {
 
     private func setupMapView() {
         mapView.delegate = self
-        mapView.setToDefaultLoction()
 
-        currentCoordinate = AppLocationConfig.defaultCoordinate
-        updateAddressLabel(for: AppLocationConfig.defaultCoordinate)
+        if locationManager.isLocationEnabled {
+            mapView.setUserTrackingMode(.follow, animated: true)
+        } else {
+            mapView.setToDefaultLoction()
+            currentCoordinate = AppLocationConfig.defaultCoordinate
+            updateAddressLabel(for: AppLocationConfig.defaultCoordinate)
+        }
     }
 
     private func showLocationPermissionAlert() {
