@@ -91,6 +91,16 @@ final class CustomCameraViewController: UIViewController {
         return button
     }()
     
+    private let focusIndicator: UIView = {
+        let view = UIView()
+        view.layer.borderWidth = 2
+        view.layer.borderColor = UIColor.systemYellow.cgColor
+        view.layer.cornerRadius = 4
+        view.alpha = 0
+        view.isUserInteractionEnabled = false
+        return view
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -104,7 +114,9 @@ final class CustomCameraViewController: UIViewController {
         
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         if status == .authorized {
-            startSession()
+            if captureSession?.isRunning == false {
+                startSession()
+            }
         } else if status == .denied || status == .restricted {
             showPermissionDeniedAlert()
         }
@@ -126,6 +138,10 @@ final class CustomCameraViewController: UIViewController {
         view.addSubview(switchCameraButton)
         view.addSubview(zoom1xButton)
         view.addSubview(zoom2xButton)
+        view.addSubview(focusIndicator)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapToFocus))
+        previewView.addGestureRecognizer(tapGesture)
         
         previewView.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
@@ -172,6 +188,10 @@ final class CustomCameraViewController: UIViewController {
             make.width.equalTo(60)
             make.height.equalTo(44)
         }
+        
+        focusIndicator.snp.makeConstraints { make in
+            make.size.equalTo(80)
+        }
     }
     
     private func setupActions() {
@@ -186,12 +206,14 @@ final class CustomCameraViewController: UIViewController {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             setupCamera()
+            startSession()
             
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 DispatchQueue.main.async {
                     if granted {
                         self?.setupCamera()
+                        self?.startSession()
                     } else {
                         self?.showPermissionDeniedAlert()
                     }
@@ -378,6 +400,48 @@ final class CustomCameraViewController: UIViewController {
         
         zoom1xButton.backgroundColor = is1x ? .systemOrange : UIColor.black.withAlphaComponent(0.3)
         zoom2xButton.backgroundColor = is2x ? .systemOrange : UIColor.black.withAlphaComponent(0.3)
+    }
+    
+    @objc private func handleTapToFocus(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: previewView)
+        
+        guard let device = currentCamera else { return }
+        
+        let focusPoint = videoPreviewLayer?.captureDevicePointConverted(fromLayerPoint: location) ?? CGPoint(x: 0.5, y: 0.5)
+        
+        do {
+            try device.lockForConfiguration()
+            
+            if device.isFocusPointOfInterestSupported {
+                device.focusPointOfInterest = focusPoint
+                device.focusMode = .autoFocus
+            }
+            
+            if device.isExposurePointOfInterestSupported {
+                device.exposurePointOfInterest = focusPoint
+                device.exposureMode = .autoExpose
+            }
+            
+            device.unlockForConfiguration()
+            
+            showFocusIndicator(at: location)
+        } catch {
+            print("초점 설정 오류: \(error)")
+        }
+    }
+    
+    private func showFocusIndicator(at point: CGPoint) {
+        focusIndicator.center = point
+        focusIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
+        focusIndicator.alpha = 1
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) {
+            self.focusIndicator.transform = .identity
+        } completion: { _ in
+            UIView.animate(withDuration: 0.3, delay: 0.5) {
+                self.focusIndicator.alpha = 0
+            }
+        }
     }
 }
 
