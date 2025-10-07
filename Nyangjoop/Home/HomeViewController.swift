@@ -386,13 +386,53 @@ extension HomeViewController {
 
     private func updateCatMarkers(_ cats: [Cat]) {
         let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
-        mapView.removeAnnotations(existingCatAnnotations)
-
+        let existingCatIds = Set(existingCatAnnotations.map { $0.cat.id })
+        let newCatIds = Set(cats.map { $0.id })
+        
+        let catsToRemove = existingCatAnnotations.filter { !newCatIds.contains($0.cat.id) }
+        let catIdsToAdd = newCatIds.subtracting(existingCatIds)
+        let catsToAdd = cats.filter { catIdsToAdd.contains($0.id) }
+        
+        let catsToUpdate = cats.compactMap { newCat -> Cat? in
+            guard existingCatIds.contains(newCat.id) else { return nil }
+            guard let existingAnnotation = existingCatAnnotations.first(where: { $0.cat.id == newCat.id }) else { return nil }
+            
+            let existingCat = existingAnnotation.cat
+            let hasChanged = existingCat.visitCount != newCat.visitCount ||
+                           existingCat.name != newCat.name ||
+                           existingCat.lat != newCat.lat ||
+                           existingCat.lon != newCat.lon
+            
+            return hasChanged ? newCat : nil
+        }
+        
+        if !catsToRemove.isEmpty {
+            mapView.removeAnnotations(catsToRemove)
+            print("마커 삭제: \(catsToRemove.count)개")
+        }
+        
+        if !catsToAdd.isEmpty {
+            let newAnnotations = catsToAdd.map { CatAnnotation(cat: $0) }
+            mapView.addAnnotations(newAnnotations)
+            print("마커 추가: \(catsToAdd.count)개")
+        }
+        
+        if !catsToUpdate.isEmpty {
+            let annotationsToUpdate = existingCatAnnotations.filter { annotation in
+                catsToUpdate.contains(where: { $0.id == annotation.cat.id })
+            }
+            mapView.removeAnnotations(annotationsToUpdate)
+            
+            let updatedAnnotations = catsToUpdate.map { CatAnnotation(cat: $0) }
+            mapView.addAnnotations(updatedAnnotations)
+            print("마커 업데이트: \(catsToUpdate.count)개")
+        }
+        
         currentCats = cats
-        let catAnnotations = cats.map { CatAnnotation(cat: $0) }
-        mapView.addAnnotations(catAnnotations)
-
-        print("고양이 마커 업데이트: \(cats.count)마리")
+        
+        if catsToRemove.isEmpty && catsToAdd.isEmpty && catsToUpdate.isEmpty {
+            print("마커 변경 없음")
+        }
     }
 
     private func updateCatMarkerImages() {
@@ -659,24 +699,36 @@ extension HomeViewController: CatCalloutViewDelegate {
     private func showCatInfoView(for cat: Cat) {
         let catInfoView = CatInfoView()
         catInfoView.delegate = self
-        catInfoView.configure(with: cat)
         catInfoView.alpha = 0
         
-        view.addSubview(catInfoView)
+        // UIWindow를 통해 최상위에 추가해서 탭바까지 덮기
+        guard let window = view.window else {
+            view.addSubview(catInfoView)
+            catInfoView.snp.makeConstraints { make in
+                make.edges.equalToSuperview()
+            }
+            view.layoutIfNeeded()
+            catInfoView.configure(with: cat)
+            return
+        }
+        
+        window.addSubview(catInfoView)
         
         catInfoView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         
-        UIView.animate(withDuration: 0.3) {
-            catInfoView.alpha = 1
-        }
+        window.layoutIfNeeded()
+        
+        catInfoView.configure(with: cat)
     }
 }
 
 extension HomeViewController: CatInfoViewDelegate {
     func catInfoViewDidTapConfirm() {
-        guard let catInfoView = view.subviews.first(where: { $0 is CatInfoView }) else { return }
+        // window에서 CatInfoView 찾기
+        guard let window = view.window else { return }
+        guard let catInfoView = window.subviews.first(where: { $0 is CatInfoView }) else { return }
         
         UIView.animate(withDuration: 0.2, animations: {
             catInfoView.alpha = 0
@@ -696,18 +748,74 @@ extension HomeViewController {
 
     private func showDirections(to cat: Cat) {
         let destinationCoordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
-
-        locationManager.getCurrentLocation()
-            .observe(on: MainScheduler.instance)
-            .subscribe { [weak self] currentLocation in
-                guard let self else { return }
-                self.calculateAndShowRoute(from: currentLocation.coordinate, to: destinationCoordinate, destinationName: cat.name)
-            } onFailure: { [weak self] _ in
-                guard let self else { return }
-                self.calculateAndShowRoute(from: AppLocationConfig.defaultCoordinate, to: destinationCoordinate, destinationName: cat.name)
-            }
-            .disposed(by: disposeBag)
-
+        
+        let locationManagerInstance = CLLocationManager()
+        let authStatus = locationManagerInstance.authorizationStatus
+        
+        print("현재 위치 권한 상태: \(authStatus.rawValue)")
+        
+        switch authStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            print("권한 있음 - 경로 찾기 시작")
+            locationManager.getCurrentLocation()
+                .observe(on: MainScheduler.instance)
+                .subscribe { [weak self] currentLocation in
+                    guard let self else { return }
+                    print("현재 위치로 경로 계산: \(currentLocation.coordinate.latitude), \(currentLocation.coordinate.longitude)")
+                    self.calculateAndShowRoute(from: currentLocation.coordinate, to: destinationCoordinate, destinationName: cat.name)
+                } onFailure: { [weak self] error in
+                    guard let self else { return }
+                    print("현재 위치 가져오기 실패: \(error.localizedDescription), 기본 위치 사용")
+                    self.calculateAndShowRoute(from: AppLocationConfig.defaultCoordinate, to: destinationCoordinate, destinationName: cat.name)
+                }
+                .disposed(by: disposeBag)
+            
+        case .denied, .restricted:
+            print("권한 거부됨 - 설정 안내")
+            showLocationPermissionDeniedAlert()
+            
+        case .notDetermined:
+            print("권한 미결정 - 권한 요청")
+            locationManager.getCurrentLocation(requestPermissionIfNeeded: true)
+                .observe(on: MainScheduler.instance)
+                .subscribe { [weak self] currentLocation in
+                    guard let self else { return }
+                    print("권한 허용 후 경로 계산")
+                    self.calculateAndShowRoute(from: currentLocation.coordinate, to: destinationCoordinate, destinationName: cat.name)
+                } onFailure: { [weak self] error in
+                    guard let self else { return }
+                    print("권한 요청 실패: \(error.localizedDescription)")
+                    if let locationError = error as? LocationError, locationError == .permissionDenied {
+                        self.showLocationPermissionDeniedAlert()
+                    } else {
+                        self.calculateAndShowRoute(from: AppLocationConfig.defaultCoordinate, to: destinationCoordinate, destinationName: cat.name)
+                    }
+                }
+                .disposed(by: disposeBag)
+            
+        @unknown default:
+            print("알 수 없는 권한 상태 - 기본 위치 사용")
+            calculateAndShowRoute(from: AppLocationConfig.defaultCoordinate, to: destinationCoordinate, destinationName: cat.name)
+        }
+    }
+    
+    private func showLocationPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "위치 권한 필요",
+            message: "경로 안내를 사용하려면 설정에서 위치 권한을 허용해주세요.",
+            preferredStyle: .alert
+        )
+        
+        let settingsAction = UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            self.locationManager.openLocationSettings()
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(settingsAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
 
     private func calculateAndShowRoute(from source: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, destinationName: String) {
