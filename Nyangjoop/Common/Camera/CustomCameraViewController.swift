@@ -94,14 +94,20 @@ final class CustomCameraViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupCamera()
         setupActions()
         updateZoomButtons()
+        checkCameraPermission()
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        startSession()
+        
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        if status == .authorized {
+            startSession()
+        } else if status == .denied || status == .restricted {
+            showPermissionDeniedAlert()
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -174,6 +180,63 @@ final class CustomCameraViewController: UIViewController {
         switchCameraButton.addTarget(self, action: #selector(switchCameraButtonTapped), for: .touchUpInside)
         zoom1xButton.addTarget(self, action: #selector(zoom1xButtonTapped), for: .touchUpInside)
         zoom2xButton.addTarget(self, action: #selector(zoom2xButtonTapped), for: .touchUpInside)
+    }
+    
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupCamera()
+            
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.setupCamera()
+                    } else {
+                        self?.showPermissionDeniedAlert()
+                    }
+                }
+            }
+            
+        case .denied, .restricted:
+            showPermissionDeniedAlert()
+            
+        @unknown default:
+            showPermissionDeniedAlert()
+        }
+    }
+    
+    private func showPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "카메라 권한 필요",
+            message: "카메라를 사용하려면 설정에서 권한을 허용해주세요.",
+            preferredStyle: .alert
+        )
+        
+        let settingsAction = UIAlertAction(title: "설정으로 이동", style: .default) { [weak self] _ in
+            self?.openSettings()
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel) { [weak self] _ in
+            self?.dismiss(animated: true)
+        }
+        
+        alert.addAction(settingsAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func openSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString),
+              UIApplication.shared.canOpenURL(settingsURL) else {
+            dismiss(animated: true)
+            return
+        }
+        
+        UIApplication.shared.open(settingsURL) { [weak self] _ in
+            self?.dismiss(animated: true)
+        }
     }
     
     private func setupCamera() {
