@@ -156,12 +156,12 @@ final class CatInfoView: UIView {
         }
         
         titleLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(150)
+            make.top.equalToSuperview().offset(160)
             make.centerX.equalToSuperview()
         }
         
         photoContainerView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(30)
+            make.top.equalTo(titleLabel.snp.bottom).offset(16)
             make.centerX.equalToSuperview()
             make.width.height.equalTo(180)
         }
