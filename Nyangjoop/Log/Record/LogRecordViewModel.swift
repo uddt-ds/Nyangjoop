@@ -98,7 +98,6 @@ final class LogRecordViewModel: ViewModelProtocol {
             .do(onNext: { [weak self] image in
                 guard let self else { return }
                 self.selectedImage = image
-                self.imagePath = self.saveImageToDocuments(image)
             })
             .asDriver(onErrorJustReturn: UIImage())
 
@@ -156,8 +155,15 @@ final class LogRecordViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
 
-            guard let imagePath = self.imagePath else {
+            guard self.selectedImage != nil else {
                 observer.onNext(.failure(LogRecordError.noPhotoSelected))
+                observer.onCompleted()
+                return Disposables.create()
+            }
+            
+            // 저장 시점에 이미지 저장
+            guard let savedImagePath = self.saveImageToDocuments() else {
+                observer.onNext(.failure(LogRecordError.imageSaveFailed))
                 observer.onCompleted()
                 return Disposables.create()
             }
@@ -167,14 +173,13 @@ final class LogRecordViewModel: ViewModelProtocol {
             do {
                 let visitLog = VisitLog(catId: selectedCat.id,
                                         date: Date(),
-                                        filePath: imagePath,
+                                        filePath: savedImagePath,
                                         memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : memo,
                                         lat: location.latitude,
                                         lon: location.longitude)
 
                 try self.realmManager.saveVisitLog(visitLog, to: selectedCat)
                 
-                // 기록 저장 성공 후 Notification 발송
                 NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
                 
                 observer.onNext(.success(()))
@@ -187,8 +192,12 @@ final class LogRecordViewModel: ViewModelProtocol {
         }
     }
 
-    private func saveImageToDocuments(_ image: UIImage) -> String? {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return nil }
+    private func saveImageToDocuments() -> String? {
+        guard let image = selectedImage else { return nil }
+        guard let imageData = image.jpegData(compressionQuality: 0.5) else {
+            print("이미지 압축 실패")
+            return nil
+        }
 
         let fileName = "visit_\(UUID().uuidString).jpg"
         let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -196,9 +205,10 @@ final class LogRecordViewModel: ViewModelProtocol {
 
         do {
             try imageData.write(to: filePath)
+            print("이미지 저장 성공 (50% 퀄리티): \(fileName)")
             return fileName
         } catch {
-            print("이미지 저장 실패")
+            print("이미지 저장 실패: \(error)")
             return nil
         }
     }
@@ -207,6 +217,7 @@ final class LogRecordViewModel: ViewModelProtocol {
 enum LogRecordError: Error, LocalizedError {
     case noCatSelected
     case noPhotoSelected
+    case imageSaveFailed
     case saveError(Error)
     case unknown
 
@@ -216,6 +227,8 @@ enum LogRecordError: Error, LocalizedError {
             return "고양이를 선택해주세요"
         case .noPhotoSelected:
             return "사진을 선택해주세요"
+        case .imageSaveFailed:
+            return "이미지 저장에 실패했습니다"
         case .saveError(let error):
             return "저장 중 오류가 발생했어요 \(error.localizedDescription)"
         case .unknown:

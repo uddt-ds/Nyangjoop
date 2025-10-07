@@ -75,9 +75,6 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 } else {
                     print("사진에 날짜 정보 없음")
                 }
-                
-                // 이미지 저장
-                self.saveImage()
             })
             .map { $0.image }
             .asDriver(onErrorJustReturn: UIImage())
@@ -192,23 +189,24 @@ final class CatRegisterViewModel: ViewModelProtocol {
                       extractedDate: extractedDateRelay.asDriver())
     }
 
-    private func saveImage() {
-        if let data = originalImageData {
-            // 원본 데이터 저장 (메타데이터 포함)
-            let fileName = "cat_\(UUID().uuidString).jpg"
-            let filePath = FileManager.documentsDirectory.appendingPathComponent(fileName)
-            
-            do {
-                try data.write(to: filePath)
-                self.imagePath = fileName
-                print("이미지 저장 성공 (메타데이터 포함): \(fileName)")
-            } catch {
-                print("이미지 저장 실패: \(error)")
-            }
-        } else if let image = selectedImage {
-            // 원본 데이터가 없으면 JPEG 변환
-            imagePath = FileManager.saveImage(image)
-            print("이미지 저장 (메타데이터 없음): \(imagePath ?? "nil")")
+    private func saveImage() -> String? {
+        guard let image = selectedImage else { return nil }
+        
+        let fileName = "cat_\(UUID().uuidString).jpg"
+        let filePath = FileManager.documentsDirectory.appendingPathComponent(fileName)
+        
+        guard let compressedData = image.jpegData(compressionQuality: 0.5) else {
+            print("이미지 압축 실패")
+            return nil
+        }
+        
+        do {
+            try compressedData.write(to: filePath)
+            print("이미지 저장 성공 (50% 퀄리티): \(fileName)")
+            return fileName
+        } catch {
+            print("이미지 저장 실패: \(error)")
+            return nil
         }
     }
 
@@ -227,9 +225,9 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
             
-            // 이미지 경로 필수 체크
-            guard let imagePath = self.imagePath else {
-                observer.onNext(.failure(CatRegisterError.missingPhoto))
+            // 등록 시점에 이미지 저장
+            guard let savedImagePath = self.saveImage() else {
+                observer.onNext(.failure(CatRegisterError.imageSaveFailed))
                 observer.onCompleted()
                 return Disposables.create()
             }
@@ -261,16 +259,16 @@ final class CatRegisterViewModel: ViewModelProtocol {
                               meetDate: finalDate,
                               gender: genderIndex,
                               character: characterIndex == 5 ? nil : characterIndex,
-                              drawImage: defaultImageName,  // 선택한 기본 이미지 사용
+                              drawImage: defaultImageName,
                               lat: finalLocation.latitude,
                               lon: finalLocation.longitude)
 
                 try self.realmManager.saveCat(cat)
 
-                // 첫 방문 기록 자동 생성 (실제 사진 사용)
+                // 첫 방문 기록 자동 생성
                 let visitLog = VisitLog(catId: cat.id,
                                         date: finalDate,
-                                        filePath: imagePath,
+                                        filePath: savedImagePath,
                                         lat: finalLocation.latitude,
                                         lon: finalLocation.longitude)
                 try self.realmManager.saveVisitLog(visitLog, to: cat)
@@ -321,6 +319,7 @@ enum CatRegisterError: Error, LocalizedError {
     case missingPhoto
     case missingDefaultImage
     case missingLocation
+    case imageSaveFailed
     case saveError(Error)
     case unknown
 
@@ -332,6 +331,8 @@ enum CatRegisterError: Error, LocalizedError {
             return "지도 표시용 이미지를 선택해주세요"
         case .missingLocation:
             return "위치 정보를 설정해주세요"
+        case .imageSaveFailed:
+            return "이미지 저장에 실패했습니다"
         case .saveError(let error):
             return "저장 중 오류가 발생했습니다: \(error.localizedDescription)"
         case .unknown:
