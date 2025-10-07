@@ -132,12 +132,28 @@ final class ProfileViewController: BaseViewController {
         label.textColor = .label
         return label
     }()
-    
+
     private let achievementContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemGray6
         view.layer.cornerRadius = 16
         return view
+    }()
+    
+    private let achievementOverlayView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemGray5.withAlphaComponent(0.85)
+        view.layer.cornerRadius = 16
+        return view
+    }()
+
+    private let comingSoonLabel: UILabel = {
+        let label = UILabel()
+        label.text = "준비중"
+        label.font = .systemFont(ofSize: 16, weight: .bold)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        return label
     }()
     
     private let achievementScrollView: UIScrollView = {
@@ -234,6 +250,9 @@ final class ProfileViewController: BaseViewController {
         
         achievementContainerView.addSubview(achievementScrollView)
         achievementScrollView.addSubview(achievementStackView)
+        
+        achievementContainerView.addSubview(achievementOverlayView)
+        achievementOverlayView.addSubview(comingSoonLabel)
     }
     
     override func configureLayout() {
@@ -330,6 +349,14 @@ final class ProfileViewController: BaseViewController {
         achievementStackView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
             make.width.equalToSuperview()
+        }
+        
+        achievementOverlayView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        comingSoonLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
         }
     }
     

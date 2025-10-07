@@ -80,84 +80,45 @@ final class ProfileViewModel: ViewModelProtocol {
     }
     
     private func getAchievements() -> [Achievement] {
-        let cats = realmManager.fetchAllCats()
-        let visits = realmManager.fetchAllVisitLogs()
-        
-        let catCount = cats.count
-        let visitCount = visits.count
-        
         var achievements: [Achievement] = []
         
-        // 첫 만남
+        // 모든 업적 준비중으로 변경
         achievements.append(Achievement(
             title: "첫 만남",
             description: "첫 고양이를 등록하세요",
-            status: catCount >= 1 ? "완료" : "미완료",
-            isCompleted: catCount >= 1
+            status: "준비중",
+            isCompleted: false
         ))
         
-        // 사진작가
         achievements.append(Achievement(
             title: "사진작가",
             description: "사진 100장 촬영",
-            status: visitCount >= 100 ? "완료" : "\(visitCount)/100",
-            isCompleted: visitCount >= 100
+            status: "준비중",
+            isCompleted: false
         ))
         
-        // 단골손님
-        let consecutiveDays = calculateConsecutiveVisitDays()
         achievements.append(Achievement(
             title: "단골손님",
             description: "7일 연속 방문",
-            status: consecutiveDays >= 7 ? "완료" : "\(consecutiveDays)/7일",
-            isCompleted: consecutiveDays >= 7
+            status: "준비중",
+            isCompleted: false
         ))
         
-        // 고양이 집사
         achievements.append(Achievement(
             title: "고양이 집사",
             description: "고양이 10마리 등록",
-            status: catCount >= 10 ? "완료" : "\(catCount)/10마리",
-            isCompleted: catCount >= 10
+            status: "준비중",
+            isCompleted: false
         ))
         
-        // 열정적인 집사
         achievements.append(Achievement(
             title: "열정적인 집사",
             description: "총 500번 방문",
-            status: visitCount >= 500 ? "완료" : "\(visitCount)/500회",
-            isCompleted: visitCount >= 500
+            status: "준비중",
+            isCompleted: false
         ))
         
         return achievements
     }
-    
-    private func calculateConsecutiveVisitDays() -> Int {
-        let visits = realmManager.fetchAllVisitLogs()
-        
-        guard !visits.isEmpty else { return 0 }
-        
-        let calendar = Calendar.current
-        let sortedDates = visits
-            .map { calendar.startOfDay(for: $0.date) }
-            .sorted(by: >)
-        
-        var consecutiveDays = 1
-        var maxConsecutiveDays = 1
-        
-        for i in 1..<sortedDates.count {
-            let currentDay = sortedDates[i]
-            let previousDay = sortedDates[i-1]
-            
-            if let dayDifference = calendar.dateComponents([.day], from: currentDay, to: previousDay).day,
-               dayDifference == 1 {
-                consecutiveDays += 1
-                maxConsecutiveDays = max(maxConsecutiveDays, consecutiveDays)
-            } else if currentDay != previousDay {
-                consecutiveDays = 1
-            }
-        }
-        
-        return maxConsecutiveDays
-    }
+
 }
