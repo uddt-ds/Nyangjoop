@@ -249,12 +249,15 @@ final class CatInfoView: UIView {
     }
     
     private func animateIn() {
-        backgroundImageView.transform = CGAffineTransform(translationX: 0, y: -bounds.height)
         alpha = 0
+        backgroundImageView.transform = CGAffineTransform(translationX: 0, y: -bounds.height)
         
-        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
-            self.backgroundImageView.transform = .identity
+        UIView.animate(withDuration: 0.3) {
             self.alpha = 1
+        }
+        
+        UIView.animate(withDuration: 0.5, delay: 0.1, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.backgroundImageView.transform = .identity
         }
     }
     
