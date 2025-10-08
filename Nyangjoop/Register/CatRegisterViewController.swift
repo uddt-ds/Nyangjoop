@@ -116,6 +116,13 @@ final class CatRegisterViewController: BaseViewController {
         label.textAlignment = .center
         return label
     }()
+    
+    private let photoLoadingIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.hidesWhenStopped = true
+        indicator.color = .key
+        return indicator
+    }()
 
     private let defaultImageSectionView = UIView()
     
@@ -184,6 +191,9 @@ final class CatRegisterViewController: BaseViewController {
         textField.font = FontSystem.body.font
         textField.backgroundColor = .clear
         textField.borderStyle = .none
+        textField.autocorrectionType = .no
+        textField.spellCheckingType = .no
+        textField.returnKeyType = .done
         textField.delegate = self
         return textField
     }()
@@ -352,11 +362,16 @@ final class CatRegisterViewController: BaseViewController {
         setupPhotoPickerManager()
         setupGestures()
         setupGenderButtons()
+        setupKeyboardHandling()
         selectDefaultCharacter()
         selectGenderButton(unknownGenderButton)
         genderSelectedSubject.onNext(2)
 
         bind()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func configureHierarchy() {
@@ -380,7 +395,7 @@ final class CatRegisterViewController: BaseViewController {
             photoSectionView.addSubview($0)
         }
         
-        [photoImageView, photoPlaceholderStackView].forEach { 
+        [photoImageView, photoPlaceholderStackView, photoLoadingIndicator].forEach { 
             photoContainerView.addSubview($0)
         }
         
@@ -458,6 +473,10 @@ final class CatRegisterViewController: BaseViewController {
         
         photoIconView.snp.makeConstraints { make in
             make.size.equalTo(32)
+        }
+        
+        photoLoadingIndicator.snp.makeConstraints { make in
+            make.center.equalToSuperview()
         }
         
         defaultImageSectionView.snp.makeConstraints { make in
@@ -606,6 +625,18 @@ final class CatRegisterViewController: BaseViewController {
                 self.photoWithMetadataSubject.onNext(photoWithMetadata)
             })
             .disposed(by: disposeBag)
+        
+        photoPickerManager.isLoading
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] isLoading in
+                guard let self = self else { return }
+                if isLoading {
+                    self.showPhotoLoadingIndicator()
+                } else {
+                    self.hidePhotoLoadingIndicator()
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     private func setupGestures() {
@@ -658,6 +689,48 @@ final class CatRegisterViewController: BaseViewController {
         }
     }
     
+    private func setupKeyboardHandling() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillShow),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillHide),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        scrollView.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        
+        let contentInset = UIEdgeInsets(top: 0, left: 0, bottom: keyboardFrame.height, right: 0)
+        scrollView.contentInset = contentInset
+        scrollView.scrollIndicatorInsets = contentInset
+        
+        if nameTextField.isFirstResponder {
+            let textFieldFrame = nameTextField.convert(nameTextField.bounds, to: scrollView)
+            scrollView.scrollRectToVisible(textFieldFrame, animated: true)
+        }
+    }
+    
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        scrollView.contentInset = .zero
+        scrollView.scrollIndicatorInsets = .zero
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+    
     @objc private func photoContainerTapped() {
         photoPickerManager.showPhotoSelectionActionSheet()
     }
@@ -699,7 +772,9 @@ extension CatRegisterViewController {
             viewDidLoad: .just(()),
             photoWithMetadataSelected: photoWithMetadataSubject.asObservable(),
             defaultImageSelected: defaultImageSelectedSubject.asObservable(),
-            nameTextChanged: nameTextField.rx.text.orEmpty.asObservable(),
+            nameTextChanged: nameTextField.rx.text.orEmpty
+                .debounce(.milliseconds(100), scheduler: MainScheduler.instance)
+                .asObservable(),
             genderSelected: genderSelectedSubject.compactMap { $0 }.asObservable(),
             characterSelected: characterSelectedSubject.asObservable(),
             locationButtonTapped: locationButton.rx.tap.asObservable(),
@@ -766,8 +841,26 @@ extension CatRegisterViewController {
         photoImageView.image = image
         photoImageView.isHidden = false
         photoPlaceholderStackView.isHidden = true
-        photoContainerView.layer.borderColor = UIColor.key.cgColor
-        photoContainerView.layer.borderWidth = 2
+        
+        UIView.animate(withDuration: 0.2) {
+            self.photoContainerView.layer.borderColor = UIColor.key.cgColor
+            self.photoContainerView.layer.borderWidth = 2
+        }
+    }
+    
+    private func showPhotoLoadingIndicator() {
+        photoPlaceholderStackView.isHidden = true
+        photoLoadingIndicator.startAnimating()
+        photoContainerView.isUserInteractionEnabled = false
+    }
+    
+    private func hidePhotoLoadingIndicator() {
+        photoLoadingIndicator.stopAnimating()
+        photoContainerView.isUserInteractionEnabled = true
+        
+        if photoImageView.image == nil {
+            photoPlaceholderStackView.isHidden = false
+        }
     }
     
     private func displaySelectedDefaultImage(_ image: UIImage) {
@@ -845,7 +938,8 @@ extension CatRegisterViewController: DefaultImageDelegate {
 }
 
 extension CatRegisterViewController: UITextFieldDelegate {
-    func textFieldDidEndEditing(_ textField: UITextField) {
-        resignFirstResponder()
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }

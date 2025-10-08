@@ -23,10 +23,15 @@ final class PhotoPickerManager: NSObject {
     
     private weak var presentingViewController: UIViewController?
     private let selectedPhotoSubject = PublishSubject<PhotoWithMetadata>()
+    private let isLoadingSubject = PublishSubject<Bool>()
     private let disposeBag = DisposeBag()
     
     var selectedPhoto: Observable<PhotoWithMetadata> {
         return selectedPhotoSubject.asObservable()
+    }
+    
+    var isLoading: Observable<Bool> {
+        return isLoadingSubject.asObservable()
     }
     
     init(presentingViewController: UIViewController) {
@@ -69,9 +74,11 @@ final class PhotoPickerManager: NSObject {
         var configuration = PHPickerConfiguration()
         configuration.filter = .images
         configuration.selectionLimit = 1
+        configuration.preferredAssetRepresentationMode = .current
         
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = self
+        picker.modalPresentationStyle = .fullScreen
         presentingVC.present(picker, animated: true)
     }
     
@@ -130,10 +137,11 @@ final class PhotoPickerManager: NSObject {
 // MARK: - CustomCameraDelegate
 extension PhotoPickerManager: CustomCameraDelegate {
     func didCaptureImage(_ image: UIImage) {
+        isLoadingSubject.onNext(true)
         
-        // 위치 권한이 있으면 현재 위치를 가져오고, 없으면 nil로 처리
         LocationManager.shared.getCurrentLocation(requestPermissionIfNeeded: false)
-            .subscribe { location in
+            .subscribe { [weak self] location in
+                guard let self = self else { return }
                 print("현재 위치 가져오기 성공: \(location.coordinate.latitude), \(location.coordinate.longitude)")
                 let photoWithMetadata = PhotoWithMetadata(
                     image: image,
@@ -142,10 +150,11 @@ extension PhotoPickerManager: CustomCameraDelegate {
                     originalData: image.jpegData(compressionQuality: 0.8)
                 )
                 self.selectedPhotoSubject.onNext(photoWithMetadata)
+                self.isLoadingSubject.onNext(false)
 
-            } onFailure: { error in
+            } onFailure: { [weak self] error in
+                guard let self = self else { return }
                 print("현재 위치 가져오기 실패 (권한 없음 또는 오류): \(error)")
-                // 위치 정보 없이 사진만 전달
                 let photoWithMetadata = PhotoWithMetadata(
                     image: image,
                     location: nil,
@@ -153,6 +162,7 @@ extension PhotoPickerManager: CustomCameraDelegate {
                     originalData: image.jpegData(compressionQuality: 0.8)
                 )
                 self.selectedPhotoSubject.onNext(photoWithMetadata)
+                self.isLoadingSubject.onNext(false)
             }
             .disposed(by: disposeBag)
     }
@@ -165,56 +175,91 @@ extension PhotoPickerManager: CustomCameraDelegate {
 // MARK: - PHPickerViewControllerDelegate
 extension PhotoPickerManager: PHPickerViewControllerDelegate {
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
+        guard let result = results.first else {
+            picker.dismiss(animated: true)
+            return
+        }
         
-        guard let result = results.first else { return }
+        isLoadingSubject.onNext(true)
         
-        // 먼저 이미지 로드
-        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] (object, error) in
-            guard let self = self,
-                  let image = object as? UIImage else { return }
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
             
-            // 원본 데이터 로드 (메타데이터 포함)
             if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                 result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, error in
-                    DispatchQueue.main.async {
+                    
+                    DispatchQueue.global(qos: .userInitiated).async {
                         if let data = data {
                             print("원본 데이터 로드 성공: \(data.count) bytes")
+                            
+                            guard let image = UIImage(data: data) else {
+                                print("이미지 변환 실패")
+                                DispatchQueue.main.async {
+                                    self.isLoadingSubject.onNext(false)
+                                }
+                                return
+                            }
+                            
+                            let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
                             let metadata = self.extractMetadata(from: data)
                             
-                            let photoWithMetadata = PhotoWithMetadata(
-                                image: image,
-                                location: metadata.location,
-                                date: metadata.date,
-                                originalData: data
-                            )
-                            
-                            self.selectedPhotoSubject.onNext(photoWithMetadata)
+                            DispatchQueue.main.async {
+                                let photoWithMetadata = PhotoWithMetadata(
+                                    image: resizedImage,
+                                    location: metadata.location,
+                                    date: metadata.date,
+                                    originalData: data
+                                )
+                                
+                                self.selectedPhotoSubject.onNext(photoWithMetadata)
+                                self.isLoadingSubject.onNext(false)
+                            }
                         } else {
                             print("원본 데이터 로드 실패")
-                            // 메타데이터 없이라도 이미지는 전달
+                            
+                            result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+                                if let image = object as? UIImage {
+                                    DispatchQueue.main.async {
+                                        let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
+                                        let photoWithMetadata = PhotoWithMetadata(
+                                            image: resizedImage,
+                                            location: nil,
+                                            date: nil,
+                                            originalData: nil
+                                        )
+                                        
+                                        self.selectedPhotoSubject.onNext(photoWithMetadata)
+                                        self.isLoadingSubject.onNext(false)
+                                    }
+                                } else {
+                                    DispatchQueue.main.async {
+                                        self.isLoadingSubject.onNext(false)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+                    if let image = object as? UIImage {
+                        DispatchQueue.main.async {
+                            let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
                             let photoWithMetadata = PhotoWithMetadata(
-                                image: image,
+                                image: resizedImage,
                                 location: nil,
                                 date: nil,
                                 originalData: nil
                             )
                             
                             self.selectedPhotoSubject.onNext(photoWithMetadata)
+                            self.isLoadingSubject.onNext(false)
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.isLoadingSubject.onNext(false)
                         }
                     }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    // 메타데이터 없이라도 이미지는 전달
-                    let photoWithMetadata = PhotoWithMetadata(
-                        image: image,
-                        location: nil,
-                        date: nil,
-                        originalData: nil
-                    )
-                    
-                    self.selectedPhotoSubject.onNext(photoWithMetadata)
                 }
             }
         }

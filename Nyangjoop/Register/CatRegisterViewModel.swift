@@ -265,13 +265,12 @@ final class CatRegisterViewModel: ViewModelProtocol {
 
                 try self.realmManager.saveCat(cat)
 
-                // 첫 방문 기록 자동 생성
                 let visitLog = VisitLog(catId: cat.id,
                                         date: finalDate,
                                         filePath: savedImagePath,
                                         lat: finalLocation.latitude,
                                         lon: finalLocation.longitude)
-                try self.realmManager.saveVisitLog(visitLog, to: cat)
+                try self.realmManager.saveVisitLog(visitLog, toCatId: cat.id)
 
                 observer.onNext(.success(()))
             } catch {
