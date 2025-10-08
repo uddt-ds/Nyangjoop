@@ -39,17 +39,10 @@ final class ProfileViewModel: ViewModelProtocol {
     
     func transform(_ input: Input) -> Output {
         let stats = input.viewWillAppear
-            .map { [weak self] _ -> (cats: Int, photos: Int, visits: Int) in
-                guard let self = self else { return (0, 0, 0) }
-                
-                let cats = self.realmManager.fetchAllCats()
-                let visits = self.realmManager.fetchAllVisitLogs()
-                
-                return (
-                    cats: cats.count,
-                    photos: visits.count, // 방문 로그 = 사진 개수
-                    visits: visits.count
-                )
+            .map { _ -> (cats: Int, photos: Int, visits: Int) in
+                let cats = RealmManager.shared.fetchAllCats()          // [Cat]
+                            let visits = RealmManager.shared.fetchAllVisitLogs()   // [VisitLog]
+                            return (cats.count, visits.count, visits.count)
             }
         
         let registeredCatsCount = stats

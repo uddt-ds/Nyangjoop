@@ -427,10 +427,14 @@ extension LogRecordViewController {
     }
 
     private func updateCatSelectionUI() {
-        if let cat = selectedCat {
+        if let cat = selectedCat, !cat.isInvalidated {
             catNameLabel.text = cat.name
             catNameLabel.textColor = .label
         } else {
+            if selectedCat?.isInvalidated == true {
+                selectedCat = nil
+                selectedCatSubject.onNext(nil)
+            }
             catNameLabel.text = "고양이를 선택하세요"
             catNameLabel.textColor = .systemGray2
         }

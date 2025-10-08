@@ -11,6 +11,7 @@ import SnapKit
 protocol CatCalloutViewDelegate: AnyObject {
     func calloutViewDidTapDirections()
     func calloutViewDidTapInfo()
+    func calloutViewDidTapRelease()
 }
 
 final class CatCalloutView: UIView {
@@ -33,6 +34,7 @@ final class CatCalloutView: UIView {
         label.font = FontSystem.body.font
         label.textColor = .black
         label.textAlignment = .center
+        label.lineBreakMode = .byTruncatingMiddle
         return label
     }()
     
@@ -84,6 +86,14 @@ final class CatCalloutView: UIView {
         return button
     }()
     
+    private let releaseButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "minus.square.fill"), for: .normal)
+        button.tintColor = .systemRed
+        button.backgroundColor = .clear
+        return button
+    }()
+    
     private let tailView: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
@@ -106,7 +116,7 @@ final class CatCalloutView: UIView {
         addSubview(containerView)
         addSubview(tailView)
         
-        [catNameLabel, buttonStackView].forEach { containerView.addSubview($0) }
+        [catNameLabel, buttonStackView, releaseButton].forEach { containerView.addSubview($0) }
         [directionsButton, infoButton].forEach { buttonStackView.addArrangedSubview($0) }
         
         setupLayout()
@@ -120,9 +130,17 @@ final class CatCalloutView: UIView {
             make.height.equalTo(90)
         }
         
+        releaseButton.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(8)
+            make.trailing.equalToSuperview().offset(-8)
+            make.size.equalTo(28)
+        }
+        
         catNameLabel.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(12)
-            make.leading.trailing.equalToSuperview().inset(12)
+            make.centerX.equalToSuperview()
+            make.leading.greaterThanOrEqualToSuperview().inset(12)
+            make.trailing.lessThanOrEqualTo(releaseButton.snp.leading).offset(-8)
         }
         
         buttonStackView.snp.makeConstraints { make in
@@ -164,6 +182,7 @@ final class CatCalloutView: UIView {
     private func setupActions() {
         directionsButton.addTarget(self, action: #selector(directionsButtonTapped), for: .touchUpInside)
         infoButton.addTarget(self, action: #selector(infoButtonTapped), for: .touchUpInside)
+        releaseButton.addTarget(self, action: #selector(releaseButtonTapped), for: .touchUpInside)
     }
     
     @objc private func directionsButtonTapped() {
@@ -172,6 +191,10 @@ final class CatCalloutView: UIView {
     
     @objc private func infoButtonTapped() {
         delegate?.calloutViewDidTapInfo()
+    }
+    
+    @objc private func releaseButtonTapped() {
+        delegate?.calloutViewDidTapRelease()
     }
     
     func configure(with catName: String) {

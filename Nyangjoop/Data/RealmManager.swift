@@ -9,89 +9,120 @@ import Foundation
 import RealmSwift
 import CoreLocation
 
+import Foundation
+import RealmSwift
+
+// MARK: - RealmManager
+
 final class RealmManager {
-
     static let shared = RealmManager()
+    private init() { }
 
-    private let realm: Realm
+    private func newRealm() throws -> Realm { try Realm() }
 
-    private init() {
-        do {
-            self.realm = try Realm()
-        } catch {
-            fatalError("Realm 초기화 실패: \(error)")
-        }
-    }
 }
 
+// MARK: - Cats
+
 extension RealmManager {
+
+    /// 생성/업서트
     func saveCat(_ cat: Cat) throws {
-        try realm.write {
-            realm.add(cat, update: .modified)
-            print(realm.configuration.fileURL!)
-        }
+        let realm = try newRealm()
+        try realm.write { realm.add(cat, update: .modified) }
     }
 
-    func fetchAllCats() -> Results<Cat> {
-        return realm.objects(Cat.self)
+    /// 전체 조회 (스냅샷)
+    func fetchAllCats() -> [Cat] {
+        guard let realm = try? newRealm() else { return [] }
+        return Array(realm.objects(Cat.self))
     }
 
+    /// 단건 조회 (주의: 반환되는 객체는 호출 스레드의 Realm에 속함)
     func fetchCat(by id: ObjectId) -> Cat? {
+        guard let realm = try? newRealm() else { return nil }
         return realm.object(ofType: Cat.self, forPrimaryKey: id)
     }
 
+    /// 업데이트 (ID 기반, 내부에서 객체를 resolve)
+    func updateCat(by id: ObjectId, updates: (Cat) -> Void) throws {
+        let realm = try newRealm()
+        guard let cat = realm.object(ofType: Cat.self, forPrimaryKey: id) else { return }
+        try realm.write { updates(cat) }
+    }
+
+    /// 삭제 (연쇄 삭제 포함)
+    func deleteCat(by id: ObjectId) throws {
+        let realm = try newRealm()
+        guard let cat = realm.object(ofType: Cat.self, forPrimaryKey: id), !cat.isInvalidated else { return }
+
+        try realm.write {
+            let visitLogs = Array(cat.visitLogs)
+            
+            for log in visitLogs where !log.isInvalidated {
+                _ = FileManager.deleteImage(fileName: log.filePath)
+            }
+            
+            realm.delete(visitLogs)
+            realm.delete(cat)
+        }
+    }
+
+    /// 기존 시그니처 유지용 (가능하면 위 ID 기반 사용 권장)
     func deleteCat(_ cat: Cat) throws {
+        let realm = try newRealm()
         try realm.write {
             realm.delete(cat.visitLogs)
             realm.delete(cat)
         }
     }
-
-    func updateCat(_ cat: Cat, updates: @escaping (Cat) -> Void) throws {
-        try realm.write {
-            updates(cat)
-        }
-    }
 }
+
+// MARK: - VisitLogs
 
 extension RealmManager {
 
-    func saveVisitLog(_ visitLog: VisitLog, to cat: Cat) throws {
-        try realm.write {
-            cat.visitLogs.append(visitLog)
+    // Create
+    func saveVisitLog(_ visitLog: VisitLog, toCatId catId: ObjectId) throws {
+        let realm = try newRealm()
+        guard let cat = realm.object(ofType: Cat.self, forPrimaryKey: catId) else {
+            throw NSError(domain: "VisitLog", code: 404,
+                          userInfo: [NSLocalizedDescriptionKey: "Cat not found"])
         }
+        try realm.write { cat.visitLogs.append(visitLog) }
     }
 
-    func addVisitLog(_ visitLog: VisitLog, toCatWithId catId: ObjectId) throws {
-        guard let cat = fetchCat(by: catId) else {
-            throw NSError(domain: "addVisitlog에러", code: 404)
-        }
-
-        try realm.write {
-            cat.visitLogs.append(visitLog)
-        }
+    // Read (Cat별)
+    func fetchVisitLogs(forCatId catId: ObjectId) -> [VisitLog] {
+        guard let realm = try? newRealm(),
+              let cat = realm.object(ofType: Cat.self, forPrimaryKey: catId) else { return [] }
+        return Array(cat.visitLogs.sorted(by: \.date, ascending: false))
     }
 
-    func fetchVisitLogs(for cat: Cat) -> List<VisitLog> {
-        return cat.visitLogs
+    // Read (전체)
+    func fetchAllVisitLogs() -> [VisitLog] {
+        guard let realm = try? newRealm() else { return [] }
+        return Array(realm.objects(VisitLog.self).sorted(byKeyPath: "date", ascending: false))
     }
 
-    func getVisitCount(for cat: Cat) -> Int {
+    // Count (Cat별)
+    func getVisitCount(forCatId catId: ObjectId) -> Int {
+        guard let realm = try? newRealm(),
+              let cat = realm.object(ofType: Cat.self, forPrimaryKey: catId) else { return 0 }
         return cat.visitLogs.count
     }
 
-    func fetchAllVisitLogs() -> Results<VisitLog> {
-        return realm.objects(VisitLog.self).sorted(byKeyPath: "date", ascending: false)
-    }
-
-    func deleteVisitLog(_ visitLog: VisitLog) throws {
-        try realm.write {
-            realm.delete(visitLog)
-        }
-    }
-
+    // Count (전체)
     func getVisitCount() -> Int {
-        return fetchAllVisitLogs().count
+        guard let realm = try? newRealm() else { return 0 }
+        return realm.objects(VisitLog.self).count
+    }
+
+    // Delete (PK 기반)
+    func deleteVisitLog(withId id: ObjectId) throws {
+        let realm = try newRealm()
+        guard let log = realm.object(ofType: VisitLog.self, forPrimaryKey: id) else { return }
+        try realm.write { realm.delete(log) }
     }
 }
 

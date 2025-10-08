@@ -48,8 +48,7 @@ final class HomeViewModel: ViewModelProtocol {
             .merge(input.viewDidLoad, input.viewWillAppear)
             .withUnretained(self)
             .map { owner, _ -> [Cat] in
-                let results = owner.realmManager.fetchAllCats()
-                return Array(results)
+                return owner.realmManager.fetchAllCats()
             }
             .asDriver(onErrorJustReturn: [])
 

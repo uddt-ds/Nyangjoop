@@ -11,6 +11,7 @@ import MapKit
 import RxSwift
 import RxCocoa
 import Toast
+import RealmSwift
 
 final class HomeViewController: BaseViewController {
 
@@ -393,19 +394,29 @@ extension HomeViewController {
 
 
     private func updateCatMarkers(_ cats: [Cat]) {
-        let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }
-        let existingCatIds = Set(existingCatAnnotations.map { $0.cat.id })
-        let newCatIds = Set(cats.map { $0.id })
+        let validCats = cats.filter { !$0.isInvalidated }
         
-        let catsToRemove = existingCatAnnotations.filter { !newCatIds.contains($0.cat.id) }
+        let existingCatAnnotations = mapView.annotations.compactMap { $0 as? CatAnnotation }.filter { !$0.cat.isInvalidated }
+        let existingCatIds = Set(existingCatAnnotations.compactMap { annotation -> ObjectId? in
+            guard !annotation.cat.isInvalidated else { return nil }
+            return annotation.cat.id
+        })
+        let newCatIds = Set(validCats.map { $0.id })
+        
+        let catsToRemove = existingCatAnnotations.filter { annotation in
+            guard !annotation.cat.isInvalidated else { return true }
+            return !newCatIds.contains(annotation.cat.id)
+        }
         let catIdsToAdd = newCatIds.subtracting(existingCatIds)
-        let catsToAdd = cats.filter { catIdsToAdd.contains($0.id) }
+        let catsToAdd = validCats.filter { catIdsToAdd.contains($0.id) }
         
-        let catsToUpdate = cats.compactMap { newCat -> Cat? in
+        let catsToUpdate = validCats.compactMap { newCat -> Cat? in
             guard existingCatIds.contains(newCat.id) else { return nil }
-            guard let existingAnnotation = existingCatAnnotations.first(where: { $0.cat.id == newCat.id }) else { return nil }
+            guard let existingAnnotation = existingCatAnnotations.first(where: { !$0.cat.isInvalidated && $0.cat.id == newCat.id }) else { return nil }
             
             let existingCat = existingAnnotation.cat
+            guard !existingCat.isInvalidated else { return newCat }
+            
             let hasChanged = existingCat.visitCount != newCat.visitCount ||
                            existingCat.name != newCat.name ||
                            existingCat.lat != newCat.lat ||
@@ -427,7 +438,8 @@ extension HomeViewController {
         
         if !catsToUpdate.isEmpty {
             let annotationsToUpdate = existingCatAnnotations.filter { annotation in
-                catsToUpdate.contains(where: { $0.id == annotation.cat.id })
+                guard !annotation.cat.isInvalidated else { return false }
+                return catsToUpdate.contains(where: { $0.id == annotation.cat.id })
             }
             mapView.removeAnnotations(annotationsToUpdate)
             
@@ -436,7 +448,7 @@ extension HomeViewController {
             print("마커 업데이트: \(catsToUpdate.count)개")
         }
         
-        currentCats = cats
+        currentCats = validCats
         
         if catsToRemove.isEmpty && catsToAdd.isEmpty && catsToUpdate.isEmpty {
             print("마커 변경 없음")
@@ -571,6 +583,10 @@ extension HomeViewController: MKMapViewDelegate {
         }
 
         if let catAnnotation = annotation as? CatAnnotation {
+            guard !catAnnotation.cat.isInvalidated else {
+                return nil
+            }
+            
             let view = mapView.dequeueReusableAnnotationView(
                 withIdentifier: CatAnnotationView.identifier
             ) as? CatAnnotationView ?? CatAnnotationView(
@@ -673,7 +689,12 @@ extension HomeViewController: MKMapViewDelegate {
         }
         
         if let catAnnotation = view.annotation as? CatAnnotation {
-            if let selectedCat = selectedCat, selectedCat.id == catAnnotation.cat.id, currentCalloutView != nil {
+            guard !catAnnotation.cat.isInvalidated else {
+                mapView.deselectAnnotation(catAnnotation, animated: false)
+                return
+            }
+            
+            if let selectedCat = selectedCat, !selectedCat.isInvalidated, selectedCat.id == catAnnotation.cat.id, currentCalloutView != nil {
                 removeCurrentCalloutView()
                 self.selectedCat = nil
             } else {
@@ -707,6 +728,57 @@ extension HomeViewController: CatCalloutViewDelegate {
         guard let cat = selectedCat else { return }
         removeCurrentCalloutView()
         showCatInfoView(for: cat)
+    }
+    
+    func calloutViewDidTapRelease() {
+        guard let cat = selectedCat, !cat.isInvalidated else { return }
+        
+        let catId = cat.id
+        removeCurrentCalloutView()
+        
+        let alert = UIAlertController(
+            title: "놓아주기",
+            message: "고양이를 놓아주면 마커에서 삭제되고 \n함께한 기록도 같이 사라져요 \n정말 삭제하시겠어요?",
+            preferredStyle: .alert
+        )
+        
+        let cancelAction = UIAlertAction(title: "아니", style: .cancel)
+
+        let deleteAction = UIAlertAction(title: "응", style: .destructive) { [weak self] _ in
+            self?.deleteCat(by: catId)
+        }
+        
+        alert.addAction(cancelAction)
+        alert.addAction(deleteAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func deleteCat(by catId: ObjectId) {
+        let annotationsToRemove = mapView.annotations.compactMap { annotation -> CatAnnotation? in
+            guard let catAnnotation = annotation as? CatAnnotation else { return nil }
+            guard !catAnnotation.cat.isInvalidated else { return catAnnotation }
+            return catAnnotation.cat.id == catId ? catAnnotation : nil
+        }
+        
+        if !annotationsToRemove.isEmpty {
+            mapView.removeAnnotations(annotationsToRemove)
+        }
+        
+        do {
+            try RealmManager.shared.deleteCat(by: catId)
+            
+            if let selectedCat = selectedCat, !selectedCat.isInvalidated, selectedCat.id == catId {
+                self.selectedCat = nil
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.viewWillAppearSubject.onNext(())
+            }
+        } catch {
+            print("고양이 삭제 실패: \(error)")
+            showErrorAlert(message: "고양이 삭제에 실패했습니다")
+        }
     }
     
     private func showCatInfoView(for cat: Cat) {

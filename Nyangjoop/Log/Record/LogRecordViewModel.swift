@@ -178,7 +178,7 @@ final class LogRecordViewModel: ViewModelProtocol {
                                         lat: location.latitude,
                                         lon: location.longitude)
 
-                try self.realmManager.saveVisitLog(visitLog, to: selectedCat)
+                try self.realmManager.saveVisitLog(visitLog, toCatId: selectedCat.id)
                 
                 NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
                 

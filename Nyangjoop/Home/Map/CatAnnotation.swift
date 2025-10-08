@@ -10,22 +10,30 @@ import MapKit
 
 final class CatAnnotation: NSObject, MKAnnotation {
     let cat: Cat
+    private let cachedCoordinate: CLLocationCoordinate2D
+    private let cachedTitle: String
+    private let cachedSubtitle: String
 
     var coordinate: CLLocationCoordinate2D {
-        return CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
+        return cachedCoordinate
     }
 
     var title: String? {
-        return cat.name
+        return cachedTitle
     }
 
     var subtitle: String? {
-        let lastVisit = cat.lastVisitDate?.formatted(date: .abbreviated, time:  .omitted) ?? "첫 만남"
-        return "방문 횟수: \(cat.visitCount)회 | 최근: \(lastVisit)"
+        return cachedSubtitle
     }
 
     init(cat: Cat) {
         self.cat = cat
+        self.cachedCoordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
+        self.cachedTitle = cat.name
+        
+        let lastVisit = cat.lastVisitDate?.formatted(date: .abbreviated, time:  .omitted) ?? "첫 만남"
+        self.cachedSubtitle = "방문 횟수: \(cat.visitCount)회 | 최근: \(lastVisit)"
+        
         super.init()
     }
 }
@@ -162,6 +170,13 @@ final class CatAnnotationView: MKAnnotationView, IdentifierProtocol {
     }
 
     func configure(with cat: Cat, showGalleryImage: Bool) {
+        guard !cat.isInvalidated else {
+            isShowingPhoto = false
+            showDirectImageMode()
+            catImageView.image = UIImage(systemName: "exclamationmark.triangle")
+            return
+        }
+        
         if showGalleryImage {
             isShowingPhoto = true
             bounds = CGRect(x: 0, y: 0, width: 90, height: 90)

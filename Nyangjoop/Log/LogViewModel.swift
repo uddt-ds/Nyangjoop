@@ -99,20 +99,17 @@ final class LogViewModel: ViewModelProtocol {
     }
 
     private func loadCats() {
-        let cats = Array(realmManager.fetchAllCats())
+        let cats = realmManager.fetchAllCats()
         catsRelay.accept(cats)
 
-        // 선택된 고양이가 삭제되었다면 "전체" 선택
         if let currentSelectedCat = selectedCatRelay.value,
-           !cats.contains(where: { $0.id == currentSelectedCat.id }) {
-            selectedCatRelay.accept(nil)  // "전체"로 설정
+           (currentSelectedCat.isInvalidated || !cats.contains(where: { $0.id == currentSelectedCat.id })) {
+            selectedCatRelay.accept(nil)
         }
     }
 
     private func loadAllVisitLogs() {
-        // Realm에서 최신 데이터를 가져와서 Array로 변환
-        let results = realmManager.fetchAllVisitLogs()
-        let visitLogs = Array(results)
+        let visitLogs = realmManager.fetchAllVisitLogs()
         visitLogRelay.accept(visitLogs)
     }
 
@@ -122,14 +119,12 @@ final class LogViewModel: ViewModelProtocol {
             return
         }
 
-        // Realm에서 최신 고양이 객체를 다시 가져오기
-        guard let freshCat = realmManager.fetchCat(by: cat.id) else {
+        guard !cat.isInvalidated else {
             loadAllVisitLogs()
             return
         }
         
-        let visitLogs = Array(freshCat.visitLogs)
-            .sorted { $0.date > $1.date }
+        let visitLogs = realmManager.fetchVisitLogs(forCatId: cat.id)
         visitLogRelay.accept(visitLogs)
     }
 }
