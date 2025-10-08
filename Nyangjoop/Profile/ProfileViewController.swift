@@ -49,6 +49,11 @@ final class ProfileViewController: BaseViewController {
         return label
     }()
     
+    private let nicknameContainerView: UIView = {
+        let view = UIView()
+        return view
+    }()
+    
     private let descriptionLabel: UILabel = {
         let label = UILabel()
         let nickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
@@ -56,6 +61,13 @@ final class ProfileViewController: BaseViewController {
         label.font = .systemFont(ofSize: 16)
         label.textColor = .secondaryLabel
         return label
+    }()
+    
+    private let editNicknameButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "applepencil.gen1"), for: .normal)
+        button.tintColor = .secondaryLabel
+        return button
     }()
     
     private let activityHeaderLabel: UILabel = {
@@ -186,6 +198,7 @@ final class ProfileViewController: BaseViewController {
         hideCustomTabBar()
         viewWillAppearSubject.onNext(())
         updateNickname()
+        setupEditButton()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -233,8 +246,12 @@ final class ProfileViewController: BaseViewController {
             contentView.addSubview($0)
         }
         
-        [greetingLabel, descriptionLabel].forEach {
+        [greetingLabel, nicknameContainerView].forEach {
             greetingCardView.addSubview($0)
+        }
+        
+        [descriptionLabel, editNicknameButton].forEach {
+            nicknameContainerView.addSubview($0)
         }
         
         [catsStackView, visitsStackView, achievementsStackView].forEach {
@@ -277,9 +294,22 @@ final class ProfileViewController: BaseViewController {
             make.leading.equalToSuperview().offset(20)
         }
         
-        descriptionLabel.snp.makeConstraints { make in
+        nicknameContainerView.snp.makeConstraints { make in
             make.top.equalTo(greetingLabel.snp.bottom).offset(8)
             make.leading.equalToSuperview().offset(20)
+            make.trailing.lessThanOrEqualToSuperview().offset(-20)
+        }
+        
+        descriptionLabel.snp.makeConstraints { make in
+            make.top.bottom.leading.equalToSuperview()
+            make.width.lessThanOrEqualTo(200)
+        }
+        
+        editNicknameButton.snp.makeConstraints { make in
+            make.leading.equalTo(descriptionLabel.snp.trailing).offset(4)
+            make.centerY.equalTo(descriptionLabel)
+            make.trailing.equalToSuperview()
+            make.size.equalTo(20)
         }
         
         activityHeaderLabel.snp.makeConstraints { make in
@@ -355,6 +385,19 @@ final class ProfileViewController: BaseViewController {
     
     private func configureNavigationBar() {
         navigationController?.navigationBar.tintColor = .label
+    }
+    
+    private func setupEditButton() {
+        editNicknameButton.addTarget(self, action: #selector(editNicknameTapped), for: .touchUpInside)
+    }
+    
+    @objc private func editNicknameTapped() {
+        let nicknameVC = NicknameSettingViewController()
+        nicknameVC.onNicknameUpdated = { [weak self] newNickname in
+            self?.updateNickname()
+        }
+        navigationItem.title = ""
+        navigationController?.pushViewController(nicknameVC, animated: true)
     }
     
     private func setupActivityViews() {

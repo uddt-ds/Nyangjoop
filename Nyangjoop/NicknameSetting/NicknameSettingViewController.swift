@@ -10,6 +10,14 @@ import SnapKit
 
 final class NicknameSettingViewController: BaseViewController {
     
+    // MARK: - Properties
+    
+    var onNicknameUpdated: ((String) -> Void)?
+    
+    private var isEditMode: Bool {
+        return UserDefaults.standard.string(forKey: "nickname") != nil
+    }
+    
     // MARK: - UI Components
     
     private let titleLabel: UILabel = {
@@ -61,7 +69,7 @@ final class NicknameSettingViewController: BaseViewController {
         let button = UIButton(type: .system)
         button.setTitle("그냥 묘험가로 할게", for: .normal)
         button.setTitleColor(.appTitle, for: .normal)
-        button.titleLabel?.font = FontSystem.caption.font
+        button.titleLabel?.font = UIFont(name: "MemomentKkukkukkR", size: 14) ?? .systemFont(ofSize: 14)
         button.backgroundColor = .clear
         return button
     }()
@@ -70,14 +78,29 @@ final class NicknameSettingViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureForMode()
         setupTitleLabel()
         setupActions()
         setupTextFieldDelegate()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if isEditMode {
+            hideCustomTabBar()
+        }
+    }
+    
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         nicknameTextField.becomeFirstResponder()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if isEditMode {
+            showCustomTabBar()
+        }
     }
     
     // MARK: - Configuration
@@ -129,20 +152,66 @@ final class NicknameSettingViewController: BaseViewController {
     
     // MARK: - Setup
     
+    private func hideCustomTabBar() {
+        var currentVC: UIViewController? = self
+        while let parent = currentVC?.parent {
+            currentVC = parent
+            if let tabBarController = parent as? CustomTabBarController {
+                tabBarController.hideTabBar()
+                return
+            }
+        }
+    }
+    
+    private func showCustomTabBar() {
+        var currentVC: UIViewController? = self
+        while let parent = currentVC?.parent {
+            currentVC = parent
+            if let tabBarController = parent as? CustomTabBarController {
+                tabBarController.showTabBar()
+                return
+            }
+        }
+    }
+    
+    private func configureForMode() {
+        if isEditMode {
+            skipButton.isHidden = true
+            
+            if let currentNickname = UserDefaults.standard.string(forKey: "nickname") {
+                nicknameTextField.text = currentNickname
+            }
+        }
+    }
+    
     private func setupTitleLabel() {
-        let fullText = "묘험가님, 이름을 어떻게 불러드릴까요?♧"
+        let fullText: String
+        if isEditMode {
+            let currentNickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
+            let displayNickname: String
+            
+            if currentNickname.count > 8 {
+                let startIndex = currentNickname.index(currentNickname.startIndex, offsetBy: 4)
+                let endIndex = currentNickname.index(currentNickname.endIndex, offsetBy: -4)
+                displayNickname = String(currentNickname[..<startIndex]) + "..." + String(currentNickname[endIndex...])
+            } else {
+                displayNickname = currentNickname
+            }
+            
+            fullText = "\(displayNickname)님, 어떤 이름으로 바꾸시겠어요?♧"
+        } else {
+            fullText = "묘험가님, 이름을 어떻게 불러드릴까요?♧"
+        }
+        
         let attributedString = NSMutableAttributedString(string: fullText)
         
-        // "," 기준으로 분리
         if let commaRange = fullText.range(of: ",") {
             let beforeComma = fullText[..<commaRange.lowerBound]
 
-            // 앞부분: key 컬러
             let beforeRange = NSRange(location: 0, length: beforeComma.count)
             attributedString.addAttribute(.font, value: FontSystem.main.font, range: beforeRange)
             attributedString.addAttribute(.foregroundColor, value: UIColor(named: "key") ?? .systemOrange, range: beforeRange)
             
-            // "," 포함 뒷부분: appTitle 컬러 + body2 폰트
             let afterRange = NSRange(location: beforeComma.count, length: fullText.count - beforeComma.count)
             attributedString.addAttribute(.font, value: FontSystem.body.font, range: afterRange)
             attributedString.addAttribute(.foregroundColor, value: UIColor(named: "appTitle") ?? .label, range: afterRange)
@@ -211,7 +280,12 @@ final class NicknameSettingViewController: BaseViewController {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         
-        navigateToMainScreen()
+        if isEditMode {
+            onNicknameUpdated?(nickname)
+            navigationController?.popViewController(animated: true)
+        } else {
+            navigateToMainScreen()
+        }
     }
     
     @objc private func skipButtonTapped() {
