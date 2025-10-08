@@ -12,14 +12,18 @@ import RxCocoa
 final class ProfileViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
     private let realmManager = RealmManager.shared
-    
+
+    private let greetMessages = GreetMessage.allCases.map { $0.rawValue }
+
     struct Input {
         let viewWillAppear: Observable<Void>
+        let viewDidLoad: Observable<Void>
         let logoutTapped: Observable<Void>
     }
     
     struct Output {
         let registeredCatsCount: Driver<Int>
+        let greetMessage: Driver<String>
         let photoCount: Driver<Int>
         let visitCount: Driver<Int>
         let achievements: Driver<[Achievement]>
@@ -69,9 +73,17 @@ final class ProfileViewModel: ViewModelProtocol {
         
         let showLogoutConfirm = input.logoutTapped
             .asDriver(onErrorDriveWith: .empty())
-        
+
+        let greetingMessage = input.viewDidLoad
+            .map { [weak self] _ -> String in
+                guard let self = self else { return "" }
+                return self.greetMessages.randomElement() ?? "안녕하세요!"
+            }
+            .asDriver(onErrorJustReturn: "안녕하세요!")
+
         return Output(
             registeredCatsCount: registeredCatsCount,
+            greetMessage: greetingMessage,
             photoCount: photoCount,
             visitCount: visitCount,
             achievements: achievements,
@@ -121,4 +133,14 @@ final class ProfileViewModel: ViewModelProtocol {
         return achievements
     }
 
+}
+
+enum GreetMessage: String, CaseIterable {
+    case greet = "반가워요!"
+    case hello = "안녕하세요?"
+    case meet = "또 오셨네요?"
+    case today = "오늘은 어떤 하루였나요?"
+    case adventure = "고양이 찾으러 갈 준비되셨나요?"
+    case stay = "기다렸어요"
+    case wonder = "고양이가 기다리고 있지 않을까요?"
 }

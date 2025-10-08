@@ -25,7 +25,7 @@ final class ProfileViewController: BaseViewController {
     }()
     
     private let contentView = UIView()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "프로필"
@@ -44,7 +44,7 @@ final class ProfileViewController: BaseViewController {
     private let greetingLabel: UILabel = {
         let label = UILabel()
         label.text = "반가워요"
-        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.font = FontSystem.main.font
         label.textColor = .label
         return label
     }()
@@ -386,6 +386,7 @@ final class ProfileViewController: BaseViewController {
     private func bind() {
         let input = ProfileViewModel.Input(
             viewWillAppear: viewWillAppearSubject.asObservable(),
+            viewDidLoad: .just(()),
             logoutTapped: Observable.never()
         )
         
@@ -417,6 +418,10 @@ final class ProfileViewController: BaseViewController {
         
         output.showLogoutConfirm
             .drive()
+            .disposed(by: disposeBag)
+
+        output.greetMessage
+            .drive(greetingLabel.rx.text)
             .disposed(by: disposeBag)
     }
     
