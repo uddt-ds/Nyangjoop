@@ -544,6 +544,7 @@ extension HomeViewController {
     }
     private func pushProfile() {
         let profileVC = ProfileViewController()
+        navigationItem.title = ""
         navigationController?.pushViewController(profileVC, animated: true)
     }
     

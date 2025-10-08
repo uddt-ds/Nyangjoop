@@ -26,13 +26,6 @@ final class ProfileViewController: BaseViewController {
     
     private let contentView = UIView()
     
-    private let backButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        button.tintColor = .label
-        return button
-    }()
-    
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "프로필"
@@ -188,7 +181,8 @@ final class ProfileViewController: BaseViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // CustomTabBar 숨기기 - 최상위 ViewController에서 찾기
+        navigationController?.setNavigationBarHidden(false, animated: true)
+        configureNavigationBar()
         hideCustomTabBar()
         viewWillAppearSubject.onNext(())
         updateNickname()
@@ -230,7 +224,6 @@ final class ProfileViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
         
-        view.addSubview(backButton)
         view.addSubview(titleLabel)
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -258,14 +251,8 @@ final class ProfileViewController: BaseViewController {
     override func configureLayout() {
         super.configureLayout()
         
-        backButton.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
-            make.leading.equalToSuperview().offset(16)
-            make.size.equalTo(44)
-        }
-        
         titleLabel.snp.makeConstraints { make in
-            make.top.equalTo(backButton.snp.bottom).offset(8)
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(16)
             make.leading.equalToSuperview().offset(20)
         }
         
@@ -364,7 +351,10 @@ final class ProfileViewController: BaseViewController {
         super.configureView()
         view.backgroundColor = .appBg
         setupActivityViews()
-        setupBackButton()
+    }
+    
+    private func configureNavigationBar() {
+        navigationController?.navigationBar.tintColor = .label
     }
     
     private func setupActivityViews() {
@@ -391,22 +381,6 @@ final class ProfileViewController: BaseViewController {
         
         achievementsStackView.addArrangedSubview(achievementsCountLabel)
         achievementsStackView.addArrangedSubview(achievementsTitleLabel)
-    }
-    
-    private func setupBackButton() {
-        backButton.rx.tap
-            .subscribe(with: self) { owner, _ in
-                owner.navigationController?.popViewController(animated: true)
-            }
-            .disposed(by: disposeBag)
-        
-        /*
-        logoutButton.rx.tap
-            .subscribe(with: self) { owner, _ in
-                owner.showLogoutAlert()
-            }
-            .disposed(by: disposeBag)
-        */
     }
     
     private func bind() {
