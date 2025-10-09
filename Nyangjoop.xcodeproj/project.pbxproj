@@ -16,6 +16,9 @@
 		9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB03672E8BAF25005493A9 /* Alamofire */; };
 		9BCB09712E90B596005493A9 /* IQKeyboardManagerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB09702E90B596005493A9 /* IQKeyboardManagerSwift */; };
 		9BCEACB32E95CFC200024B99 /* Toast in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEACB22E95CFC200024B99 /* Toast */; };
+		9BCEADCC2E97CFBA00024B99 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCB2E97CFBA00024B99 /* FirebaseAnalytics */; };
+		9BCEADCE2E97CFBA00024B99 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */; };
+		9BCEADD02E97CFBA00024B99 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -69,7 +72,10 @@
 				9BCB01F02E868968005493A9 /* RxSwift in Frameworks */,
 				9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */,
 				9BCB02332E86AFBD005493A9 /* RealmSwift in Frameworks */,
+				9BCEADCE2E97CFBA00024B99 /* FirebaseCrashlytics in Frameworks */,
 				9BCB01E92E868953005493A9 /* SnapKit in Frameworks */,
+				9BCEADD02E97CFBA00024B99 /* FirebaseMessaging in Frameworks */,
+				9BCEADCC2E97CFBA00024B99 /* FirebaseAnalytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +109,7 @@
 				9BCBFD8F2E84C4A3005493A9 /* Frameworks */,
 				9BCBFD902E84C4A3005493A9 /* Resources */,
 				9BCB02B82E8A8E52005493A9 /* Embed Frameworks */,
+				9BCEADD32E97D6EC00024B99 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -121,6 +128,9 @@
 				9BCB03672E8BAF25005493A9 /* Alamofire */,
 				9BCB09702E90B596005493A9 /* IQKeyboardManagerSwift */,
 				9BCEACB22E95CFC200024B99 /* Toast */,
+				9BCEADCB2E97CFBA00024B99 /* FirebaseAnalytics */,
+				9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */,
+				9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */,
 			);
 			productName = Nyangjoop;
 			productReference = 9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */;
@@ -157,6 +167,7 @@
 				9BCB03662E8BAF25005493A9 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				9BCB096F2E90B596005493A9 /* XCRemoteSwiftPackageReference "IQKeyboardManager" */,
 				9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */,
+				9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BCBFD932E84C4A3005493A9 /* Products */;
@@ -178,6 +189,31 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		9BCEADD32E97D6EC00024B99 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		9BCBFD8E2E84C4A3005493A9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -198,6 +234,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 4G4JFKFU2U;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
@@ -217,6 +254,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jean.Nyangjoop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -257,6 +295,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jean.Nyangjoop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -464,6 +503,14 @@
 				minimumVersion = 5.1.1;
 			};
 		};
+		9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -506,6 +553,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */;
 			productName = Toast;
+		};
+		9BCEADCB2E97CFBA00024B99 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
