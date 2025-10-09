@@ -12,6 +12,7 @@ Icon
 
 *.xcconfig
 BaseURL.swift
+GoogleService-Info.plist
 
 # Thumbnails
 ._*
