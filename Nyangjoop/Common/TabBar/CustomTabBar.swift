@@ -216,26 +216,52 @@ final class CustomTabBar: UIView {
 
         homeButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                guard !owner.isAnimating else { return }
                 owner.tabSelectedSubject.onNext(0)
+                if owner.isMenuExpanded {
+                    owner.closeMenuSilently()
+                }
             }
             .disposed(by: disposeBag)
 
         registerButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                guard !owner.isAnimating else { return }
-                owner.closeMenuAndSelectTab(1)
+                owner.tabSelectedSubject.onNext(1)
+                if owner.isMenuExpanded {
+                    owner.closeMenuSilently()
+                }
             }
             .disposed(by: disposeBag)
 
         logButton.rx.tap
             .subscribe(with: self) { owner, _ in
-                guard !owner.isAnimating else { return }
                 owner.tabSelectedSubject.onNext(2)
+                if owner.isMenuExpanded {
+                    owner.closeMenuSilently()
+                }
             }
             .disposed(by: disposeBag)
     }
 
+    private func closeMenuSilently() {
+        guard isMenuExpanded else { return }
+        
+        isMenuExpanded = false
+        showMenuIcon()
+        
+        let buttons = [homeButton, registerButton, logButton]
+        for button in buttons {
+            UIView.animate(
+                withDuration: 0.25,
+                delay: 0,
+                options: [.curveEaseIn, .allowUserInteraction],
+                animations: {
+                    button.alpha = 0
+                    button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
+                }
+            )
+        }
+    }
+    
     private func closeMenuAndSelectTab(_ index: Int) {
         guard isMenuExpanded else {
             tabSelectedSubject.onNext(index)
@@ -279,7 +305,7 @@ final class CustomTabBar: UIView {
                 delay: delay,
                 usingSpringWithDamping: 0.6,
                 initialSpringVelocity: 0.8,
-                options: .curveEaseOut,
+                options: [.curveEaseOut, .allowUserInteraction],
                 animations: {
                     button.alpha = 1
                     button.transform = .identity
@@ -301,7 +327,7 @@ final class CustomTabBar: UIView {
             UIView.animate(
                 withDuration: 0.3,
                 delay: 0,
-                options: .curveEaseIn,
+                options: [.curveEaseIn, .allowUserInteraction],
                 animations: {
                     button.alpha = 0
                     button.transform = CGAffineTransform(scaleX: 0.3, y: 0.3)
