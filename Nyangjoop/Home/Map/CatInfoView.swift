@@ -10,11 +10,13 @@ import SnapKit
 
 protocol CatInfoViewDelegate: AnyObject {
     func catInfoViewDidTapConfirm()
+    func catInfoViewDidTapEdit(for cat: Cat)
 }
 
 final class CatInfoView: UIView {
     
     weak var delegate: CatInfoViewDelegate?
+    private var currentCat: Cat?
     
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView()
@@ -108,7 +110,16 @@ final class CatInfoView: UIView {
     private let confirmButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("확 인", for: .normal)
-        button.titleLabel?.font = FontSystem.main.font
+        button.titleLabel?.font = FontSystem.sub.font
+        button.backgroundColor = .clear
+        button.setTitleColor(.label, for: .normal)
+        return button
+    }()
+    
+    private let editButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("수 정", for: .normal)
+        button.titleLabel?.font = FontSystem.sub.font
         button.backgroundColor = .clear
         button.setTitleColor(.label, for: .normal)
         return button
@@ -129,7 +140,7 @@ final class CatInfoView: UIView {
         
         addSubview(backgroundImageView)
         
-        [titleLabel, photoContainerView, characterLabel, genderStackView, daysStackView, confirmButton].forEach {
+        [titleLabel, photoContainerView, characterLabel, genderStackView, daysStackView, editButton, confirmButton].forEach {
             backgroundImageView.addSubview($0)
         }
         
@@ -185,16 +196,24 @@ final class CatInfoView: UIView {
             make.centerX.equalToSuperview()
         }
         
+        editButton.snp.makeConstraints { make in
+            make.bottom.equalToSuperview().offset(-10)
+            make.trailing.equalTo(backgroundImageView.snp.centerX).offset(-10)
+            make.height.equalTo(44)
+            make.width.equalTo(80)
+        }
+        
         confirmButton.snp.makeConstraints { make in
             make.bottom.equalToSuperview().offset(-10)
-            make.centerX.equalToSuperview()
+            make.leading.equalTo(backgroundImageView.snp.centerX).offset(10)
             make.height.equalTo(44)
-            make.width.equalTo(100)
+            make.width.equalTo(80)
         }
     }
     
     private func setupActions() {
         confirmButton.addTarget(self, action: #selector(confirmButtonTapped), for: .touchUpInside)
+        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(backgroundTapped))
         tapGesture.delegate = self
@@ -202,6 +221,13 @@ final class CatInfoView: UIView {
     }
     
     @objc private func confirmButtonTapped() {
+        animateDismiss()
+    }
+    
+    @objc private func editButtonTapped() {
+        if let cat = currentCat {
+            delegate?.catInfoViewDidTapEdit(for: cat)
+        }
         animateDismiss()
     }
     
@@ -219,6 +245,7 @@ final class CatInfoView: UIView {
     }
     
     func configure(with cat: Cat) {
+        currentCat = cat
         characterLabel.text = cat.name
         
         let genderText: String

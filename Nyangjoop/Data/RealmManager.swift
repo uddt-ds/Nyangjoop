@@ -18,6 +18,10 @@ final class RealmManager {
     static let shared = RealmManager()
     private init() { }
 
+    func getRealm() throws -> Realm {
+        return try newRealm()
+    }
+    
     private func newRealm() throws -> Realm { try Realm() }
 
 }

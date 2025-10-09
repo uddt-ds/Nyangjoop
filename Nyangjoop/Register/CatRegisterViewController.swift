@@ -15,7 +15,26 @@ import CoreLocation
 final class CatRegisterViewController: BaseViewController {
 
     private var disposeBag = DisposeBag()
-    private let viewModel = CatRegisterViewModel()
+    private lazy var viewModel: CatRegisterViewModel = {
+        let vm = CatRegisterViewModel()
+        if isEditMode {
+            vm.isEditMode = true
+            vm.editingCat = editingCat
+        }
+        return vm
+    }()
+    
+    private let isEditMode: Bool
+    private let editingCat: Cat?
+    var onCatUpdated: (() -> Void)?
+    private var hasConfigured: Bool = false
+    
+    init(isEditMode: Bool = false, editingCat: Cat? = nil) {
+        self.isEditMode = isEditMode
+        self.editingCat = editingCat
+        super.init(nibName: nil, bundle: nil)
+        print("[CatRegisterVC] init - isEditMode: \(isEditMode), editingCat: \(String(describing: editingCat?.name))")
+    }
     
     private var photoPickerManager: PhotoPickerManager!
     private let photoWithMetadataSubject = PublishSubject<PhotoWithMetadata>()
@@ -358,16 +377,36 @@ final class CatRegisterViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
+        
+        print("[CatRegisterVC] viewDidLoad - isEditMode: \(isEditMode)")
+        
         setupPhotoPickerManager()
         setupGestures()
         setupGenderButtons()
         setupKeyboardHandling()
-        selectDefaultCharacter()
-        selectGenderButton(unknownGenderButton)
-        genderSelectedSubject.onNext(2)
+        
+        if !isEditMode {
+            selectDefaultCharacter()
+            selectGenderButton(unknownGenderButton)
+            genderSelectedSubject.onNext(2)
+        }
 
         bind()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        if !hasConfigured {
+            setupNavigationBar()
+            
+            if isEditMode {
+                print("[CatRegisterVC] viewWillAppear - 수정 모드 UI 설정")
+                configureForEditMode()
+            }
+            
+            hasConfigured = true
+        }
     }
     
     deinit {
@@ -598,8 +637,17 @@ final class CatRegisterViewController: BaseViewController {
     private func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = false
         
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .appBg
+        appearance.shadowColor = .clear
+        
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.compactAppearance = appearance
+        
         let titleLabel = UILabel()
-        titleLabel.text = "고양이 등록"
+        titleLabel.text = isEditMode ? "고양이 수정" : "고양이 등록"
         titleLabel.font = FontSystem.main.font
         titleLabel.textColor = .label
         
@@ -614,6 +662,13 @@ final class CatRegisterViewController: BaseViewController {
         
         let leftBarButtonItem = UIBarButtonItem(customView: containerView)
         navigationItem.leftBarButtonItem = leftBarButtonItem
+        
+        let closeButton = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(closeButtonTapped))
+        navigationItem.rightBarButtonItem = closeButton
+    }
+    
+    @objc private func closeButtonTapped() {
+        dismiss(animated: true)
     }
     
     private func setupPhotoPickerManager() {
@@ -679,6 +734,65 @@ final class CatRegisterViewController: BaseViewController {
             } else {
                 button.layer.borderWidth = 0
             }
+        }
+    }
+    
+    private func configureForEditMode() {
+        guard let cat = editingCat else { return }
+        
+        // 기존 위치 정보 로드
+        viewModel.loadInitialLocation()
+        
+        nameTextField.text = cat.name
+        // nameTextField의 text가 설정되었으므로 rx 이벤트 수동 발생
+        nameTextField.sendActions(for: .editingChanged)
+        
+        switch cat.gender {
+        case 0:
+            selectGenderButton(maleButton)
+            genderSelectedSubject.onNext(0)
+        case 1:
+            selectGenderButton(femaleButton)
+            genderSelectedSubject.onNext(1)
+        default:
+            selectGenderButton(unknownGenderButton)
+            genderSelectedSubject.onNext(2)
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let character = cat.character {
+                let indexPath = IndexPath(item: character, section: 0)
+                self.characterBtnCollectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+                self.characterSelectedSubject.onNext(character)
+            }
+        }
+        
+        // ViewModel에서 위치 설정을 처리하므로 여기서는 좌표만 저장
+        selectedCoordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
+        
+        if let firstVisitDate = cat.firstVisitDate {
+            datePicker.date = firstVisitDate
+        }
+        
+        if let imagePath = cat.visitLogs.first?.filePath, !imagePath.isEmpty {
+            loadCatImage(from: imagePath)
+        }
+        
+        if let drawImage = UIImage(named: cat.drawImage) {
+            displaySelectedDefaultImage(drawImage)
+            defaultImageSelectedSubject.onNext(cat.drawImage)
+        }
+        
+        registerButton.setTitle("수정하기", for: .normal)
+            }
+    
+    private func loadCatImage(from imagePath: String) {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let fullPath = documentsPath.appendingPathComponent(imagePath).path
+        
+        if let localImage = UIImage(contentsOfFile: fullPath) {
+            displaySelectedPhoto(localImage)
         }
     }
     
@@ -822,8 +936,8 @@ extension CatRegisterViewController {
             .disposed(by: disposeBag)
 
         output.registrationCompleted
-            .drive(with: self) { owner, _ in
-                owner.showRegistrationSuccessAlert()
+            .drive(with: self) { owner, message in
+                owner.showRegistrationSuccessAlert(message: message)
             }
             .disposed(by: disposeBag)
 
@@ -837,6 +951,42 @@ extension CatRegisterViewController {
 }
 
 extension CatRegisterViewController {
+    private func reverseGeocodeLocation(coordinate: CLLocationCoordinate2D) {
+        let geocoder = CLGeocoder()
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Reverse geocoding error: \(error.localizedDescription)")
+                self.locationLabel.text = "위치 정보를 가져올 수 없습니다"
+                return
+            }
+            
+            if let placemark = placemarks?.first {
+                var addressComponents: [String] = []
+                
+                if let administrativeArea = placemark.administrativeArea {
+                    addressComponents.append(administrativeArea)
+                }
+                if let locality = placemark.locality {
+                    addressComponents.append(locality)
+                }
+                if let thoroughfare = placemark.thoroughfare {
+                    addressComponents.append(thoroughfare)
+                }
+                if let subThoroughfare = placemark.subThoroughfare {
+                    addressComponents.append(subThoroughfare)
+                }
+                
+                let address = addressComponents.joined(separator: " ")
+                self.locationLabel.text = address
+                self.selectedAddress = address
+            }
+        }
+    }
+    
     private func displaySelectedPhoto(_ image: UIImage) {
         photoImageView.image = image
         photoImageView.isHidden = false
@@ -884,8 +1034,8 @@ extension CatRegisterViewController {
         registerButton.backgroundColor = isEnabled ? .key : .systemGray4
     }
 
-    private func showRegistrationSuccessAlert() {
-        showSuccessAlert(message: "고양이가 성공적으로 등록되었습니다!") { [weak self] in
+    private func showRegistrationSuccessAlert(message: String) {
+        showSuccessAlert(message: message) { [weak self] in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(name: NSNotification.Name("CatRegistered"), object: nil)
                 self?.dismiss(animated: true)

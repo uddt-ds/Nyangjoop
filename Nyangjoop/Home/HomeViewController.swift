@@ -433,7 +433,6 @@ extension HomeViewController {
         if !catsToAdd.isEmpty {
             let newAnnotations = catsToAdd.map { CatAnnotation(cat: $0) }
             mapView.addAnnotations(newAnnotations)
-            print("마커 추가: \(catsToAdd.count)개")
         }
         
         if !catsToUpdate.isEmpty {
@@ -451,7 +450,6 @@ extension HomeViewController {
         currentCats = validCats
         
         if catsToRemove.isEmpty && catsToAdd.isEmpty && catsToUpdate.isEmpty {
-            print("마커 변경 없음")
         }
     }
 
@@ -632,8 +630,6 @@ extension HomeViewController: MKMapViewDelegate {
         
         guard shouldEnableClustering != lastClusteringState else { return }
         
-        print("줌레벨: \(String(format: "%.4f", currentZoom)), 클러스터링: \(shouldEnableClustering ? "ON" : "OFF")")
-        
         lastClusteringState = shouldEnableClustering
         isUpdatingAnnotations = true
         
@@ -811,7 +807,6 @@ extension HomeViewController: CatCalloutViewDelegate {
 
 extension HomeViewController: CatInfoViewDelegate {
     func catInfoViewDidTapConfirm() {
-        // window에서 CatInfoView 찾기
         guard let window = view.window else { return }
         guard let catInfoView = window.subviews.first(where: { $0 is CatInfoView }) else { return }
         
@@ -820,6 +815,30 @@ extension HomeViewController: CatInfoViewDelegate {
         }) { _ in
             catInfoView.removeFromSuperview()
         }
+    }
+    
+    func catInfoViewDidTapEdit(for cat: Cat) {
+        guard let window = view.window else { return }
+        guard let catInfoView = window.subviews.first(where: { $0 is CatInfoView }) else { return }
+        
+        UIView.animate(withDuration: 0.2, animations: {
+            catInfoView.alpha = 0
+        }) { [weak self] _ in
+            catInfoView.removeFromSuperview()
+            self?.presentEditViewController(for: cat)
+        }
+    }
+    
+    private func presentEditViewController(for cat: Cat) {
+        print("[HomeVC] presentEditViewController - cat: \(cat.name)")
+        let editVC = CatRegisterViewController(isEditMode: true, editingCat: cat)
+        editVC.onCatUpdated = { [weak self] in
+            self?.viewWillAppearSubject.onNext(())
+        }
+        
+        let navigationController = UINavigationController(rootViewController: editVC)
+        navigationController.modalPresentationStyle = .pageSheet
+        present(navigationController, animated: true)
     }
 }
 
