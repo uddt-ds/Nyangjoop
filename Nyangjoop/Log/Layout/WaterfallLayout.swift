@@ -43,11 +43,12 @@ final class WaterfallLayout: UICollectionViewLayout {
             xOffset.append(offset)
         }
         
-        var column = 0
         var yOffset = [CGFloat](repeating: 0, count: numberOfColumns)
         
         for item in 0..<collectionView.numberOfItems(inSection: 0) {
             let indexPath = IndexPath(item: item, section: 0)
+            
+            let column = yOffset.firstIndex(of: yOffset.min() ?? 0) ?? 0
             
             let itemHeight = delegate?.collectionView(collectionView, heightForItemAt: indexPath) ?? 0
             let height = cellPadding * 2 + itemHeight
@@ -60,8 +61,6 @@ final class WaterfallLayout: UICollectionViewLayout {
             
             contentHeight = max(contentHeight, frame.maxY)
             yOffset[column] = yOffset[column] + height
-            
-            column = column < (numberOfColumns - 1) ? (column + 1) : 0
         }
     }
     

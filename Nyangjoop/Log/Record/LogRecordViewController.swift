@@ -288,7 +288,8 @@ final class LogRecordViewController: BaseViewController {
         }
 
         memoTextView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.top.leading.trailing.bottom.equalToSuperview()
+            make.height.greaterThanOrEqualTo(120)
         }
 
         memoPlaceholderLabel.snp.makeConstraints { make in

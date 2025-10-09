@@ -105,8 +105,7 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
 
     private func configureLayout() {
         containerView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview().inset(4)
-            make.bottom.equalTo(memoLabel.snp.bottom).offset(12)
+            make.edges.equalToSuperview().inset(4)
         }
 
         imageView.snp.makeConstraints { make in
@@ -135,9 +134,10 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         memoLabel.snp.makeConstraints { make in
             make.top.equalTo(catInfoStackView.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview().inset(12)
+            make.bottom.equalToSuperview().inset(12).priority(.high)
         }
         
-        memoLabel.setContentHuggingPriority(.required, for: .vertical)
+        memoLabel.setContentHuggingPriority(.defaultLow, for: .vertical)
         memoLabel.setContentCompressionResistancePriority(.required, for: .vertical)
     }
 
@@ -167,9 +167,19 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         if let memo = visitLog.memo, !memo.isEmpty {
             memoLabel.text = memo
             memoLabel.isHidden = false
+            
+            memoLabel.snp.updateConstraints { make in
+                make.top.equalTo(catInfoStackView.snp.bottom).offset(8)
+                make.bottom.equalToSuperview().inset(12).priority(.high)
+            }
         } else {
             memoLabel.text = ""
             memoLabel.isHidden = true
+            
+            memoLabel.snp.updateConstraints { make in
+                make.top.equalTo(catInfoStackView.snp.bottom).offset(0)
+                make.bottom.equalToSuperview().inset(8).priority(.high)
+            }
         }
         
         setNeedsLayout()
@@ -177,32 +187,40 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     }
     
     func calculateHeight(for visitLog: VisitLog, width: CGFloat) -> CGFloat {
-        let imageHeight = calculateImageHeight(from: visitLog.filePath, targetWidth: width - 16)
-        let catInfoHeight: CGFloat = 24
+        let containerPadding: CGFloat = 8
+        let imageWidth = width - (containerPadding * 2)
+        let imageHeight = calculateImageHeight(from: visitLog.filePath, targetWidth: imageWidth)
+        
         let imagePadding: CGFloat = 16
+        let catInfoHeight: CGFloat = 24
         let catInfoTopPadding: CGFloat = 8
-        let memoTopPadding: CGFloat = 8
-        let bottomPadding: CGFloat = 12
+        
+        var totalHeight = imagePadding + imageHeight + catInfoTopPadding + catInfoHeight
         
         if let memo = visitLog.memo, !memo.isEmpty {
-            let memoWidth = width - 32
+            let memoTopPadding: CGFloat = 8
+            let containerBottomPadding: CGFloat = 12
+            let memoWidth = width - (containerPadding * 2) - 24
             let memoFont = UIFont(name: "MemomentKkukkukkR", size: 10) ?? .systemFont(ofSize: 10)
             let memoHeight = calculateTextHeight(text: memo, width: memoWidth, font: memoFont)
-            return imageHeight + imagePadding + catInfoHeight + catInfoTopPadding + memoTopPadding + memoHeight + bottomPadding
+            totalHeight += memoTopPadding + memoHeight + containerBottomPadding
         } else {
-            return imageHeight + imagePadding + catInfoHeight + catInfoTopPadding + bottomPadding
+            let containerBottomPadding: CGFloat = 8
+            totalHeight += containerBottomPadding
         }
+        
+        return totalHeight + (containerPadding * 2)
     }
     
     private func calculateTextHeight(text: String, width: CGFloat, font: UIFont) -> CGFloat {
         let constraintRect = CGSize(width: width, height: .greatestFiniteMagnitude)
         let boundingBox = text.boundingRect(
             with: constraintRect,
-            options: .usesLineFragmentOrigin,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: [.font: font],
             context: nil
         )
-        return ceil(boundingBox.height)
+        return ceil(boundingBox.height) + 4
     }
     
     func calculateImageHeight(from filePath: String, targetWidth: CGFloat) -> CGFloat {
