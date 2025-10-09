@@ -190,15 +190,15 @@ final class NicknameSettingViewController: BaseViewController {
             let currentNickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
             let displayNickname: String
             
-            if currentNickname.count > 8 {
-                let startIndex = currentNickname.index(currentNickname.startIndex, offsetBy: 4)
-                let endIndex = currentNickname.index(currentNickname.endIndex, offsetBy: -4)
+            if currentNickname.count > 7 {
+                let startIndex = currentNickname.index(currentNickname.startIndex, offsetBy: 3)
+                let endIndex = currentNickname.index(currentNickname.endIndex, offsetBy: -3)
                 displayNickname = String(currentNickname[..<startIndex]) + "..." + String(currentNickname[endIndex...])
             } else {
                 displayNickname = currentNickname
             }
             
-            fullText = "\(displayNickname)님, 어떤 이름으로 바꾸시겠어요?♧"
+            fullText = "\(displayNickname)님, 어떤 이름으로 변경할까요?♧"
         } else {
             fullText = "묘험가님, 이름을 어떻게 불러드릴까요?♧"
         }
