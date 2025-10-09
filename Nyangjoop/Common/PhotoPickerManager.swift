@@ -180,86 +180,88 @@ extension PhotoPickerManager: PHPickerViewControllerDelegate {
             return
         }
         
-        isLoadingSubject.onNext(true)
-        
         picker.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
             
-            if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, error in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.isLoadingSubject.onNext(true)
+                
+                self.loadImageData(from: result)
+            }
+        }
+    }
+    
+    private func loadImageData(from result: PHPickerResult) {
+        if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+            result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { [weak self] data, error in
+                guard let self = self else { return }
+                
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self = self else { return }
                     
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        if let data = data {
-                            print("원본 데이터 로드 성공: \(data.count) bytes")
-                            
-                            guard let image = UIImage(data: data) else {
-                                print("이미지 변환 실패")
-                                DispatchQueue.main.async {
-                                    self.isLoadingSubject.onNext(false)
-                                }
-                                return
-                            }
-                            
-                            let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
-                            let metadata = self.extractMetadata(from: data)
-                            
+                    if let data = data {
+                        print("원본 데이터 로드 성공: \(data.count) bytes")
+                        
+                        guard let image = UIImage(data: data) else {
+                            print("이미지 변환 실패")
                             DispatchQueue.main.async {
-                                let photoWithMetadata = PhotoWithMetadata(
-                                    image: resizedImage,
-                                    location: metadata.location,
-                                    date: metadata.date,
-                                    originalData: data
-                                )
-                                
-                                self.selectedPhotoSubject.onNext(photoWithMetadata)
                                 self.isLoadingSubject.onNext(false)
                             }
-                        } else {
-                            print("원본 데이터 로드 실패")
-                            
-                            result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
-                                if let image = object as? UIImage {
-                                    DispatchQueue.main.async {
-                                        let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
-                                        let photoWithMetadata = PhotoWithMetadata(
-                                            image: resizedImage,
-                                            location: nil,
-                                            date: nil,
-                                            originalData: nil
-                                        )
-                                        
-                                        self.selectedPhotoSubject.onNext(photoWithMetadata)
-                                        self.isLoadingSubject.onNext(false)
-                                    }
-                                } else {
-                                    DispatchQueue.main.async {
-                                        self.isLoadingSubject.onNext(false)
-                                    }
-                                }
-                            }
+                            return
                         }
-                    }
-                }
-            } else {
-                result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
-                    if let image = object as? UIImage {
+                        
+                        let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
+                        let metadata = self.extractMetadata(from: data)
+                        
                         DispatchQueue.main.async {
-                            let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
                             let photoWithMetadata = PhotoWithMetadata(
                                 image: resizedImage,
-                                location: nil,
-                                date: nil,
-                                originalData: nil
+                                location: metadata.location,
+                                date: metadata.date,
+                                originalData: data
                             )
                             
                             self.selectedPhotoSubject.onNext(photoWithMetadata)
                             self.isLoadingSubject.onNext(false)
                         }
                     } else {
+                        print("원본 데이터 로드 실패")
                         DispatchQueue.main.async {
-                            self.isLoadingSubject.onNext(false)
+                            self.loadImageAsFallback(from: result)
                         }
                     }
+                }
+            }
+        } else {
+            loadImageAsFallback(from: result)
+        }
+    }
+    
+    private func loadImageAsFallback(from result: PHPickerResult) {
+        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            guard let self = self else { return }
+            
+            if let image = object as? UIImage {
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self = self else { return }
+                    
+                    let resizedImage = image.resizeIfNeeded(maxDimension: 2000)
+                    
+                    DispatchQueue.main.async {
+                        let photoWithMetadata = PhotoWithMetadata(
+                            image: resizedImage,
+                            location: nil,
+                            date: nil,
+                            originalData: nil
+                        )
+                        
+                        self.selectedPhotoSubject.onNext(photoWithMetadata)
+                        self.isLoadingSubject.onNext(false)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isLoadingSubject.onNext(false)
                 }
             }
         }
