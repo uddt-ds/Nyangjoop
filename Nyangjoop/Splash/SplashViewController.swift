@@ -63,7 +63,7 @@ final class SplashViewController: BaseViewController {
     }
     
     private func showNicknameViewController() {
-        let nicknameVC = NicknameSettingViewController()
+        let nicknameVC = NicknameSettingViewController(isEditMode: false)
         nicknameVC.modalPresentationStyle = .fullScreen
         nicknameVC.modalTransitionStyle = .crossDissolve
         present(nicknameVC, animated: true)

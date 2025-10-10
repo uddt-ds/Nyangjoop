@@ -392,7 +392,7 @@ final class ProfileViewController: BaseViewController {
     }
     
     @objc private func editNicknameTapped() {
-        let nicknameVC = NicknameSettingViewController()
+        let nicknameVC = NicknameSettingViewController(isEditMode: true)
         nicknameVC.onNicknameUpdated = { [weak self] newNickname in
             self?.updateNickname()
         }

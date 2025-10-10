@@ -14,9 +14,7 @@ final class NicknameSettingViewController: BaseViewController {
     
     var onNicknameUpdated: ((String) -> Void)?
     
-    private var isEditMode: Bool {
-        return UserDefaults.standard.string(forKey: "nickname") != nil
-    }
+    private let isEditMode: Bool
     
     // MARK: - UI Components
     
@@ -73,6 +71,17 @@ final class NicknameSettingViewController: BaseViewController {
         button.backgroundColor = .clear
         return button
     }()
+    
+    // MARK: - Initialization
+    
+    init(isEditMode: Bool = false) {
+        self.isEditMode = isEditMode
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - Lifecycle
     
