@@ -85,6 +85,7 @@ final class LogViewController: BaseViewController {
     
     private func setupCollectionView() {
         logCollectionView.dataSource = self
+        logCollectionView.delegate = self
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -178,6 +179,16 @@ extension LogViewController {
         let nav = UINavigationController(rootViewController: logRecordVC)
         nav.modalPresentationStyle = .pageSheet
         
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .appBg
+        appearance.shadowColor = .clear
+        appearance.shadowImage = UIImage()
+        
+        nav.navigationBar.standardAppearance = appearance
+        nav.navigationBar.scrollEdgeAppearance = appearance
+        nav.navigationBar.compactAppearance = appearance
+        
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
@@ -212,6 +223,31 @@ extension LogViewController: UICollectionViewDataSource {
     }
 }
 
+extension LogViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let visitLog = visitLogsCache[indexPath.item]
+        presentLogDetailViewController(with: visitLog)
+    }
+    
+    private func presentLogDetailViewController(with visitLog: VisitLog) {
+        let image = FileManager.loadImage(fileName: visitLog.filePath)
+        let catIcon = visitLog.cat?.drawImage.isEmpty == false ? UIImage(named: visitLog.cat?.drawImage ?? "") : nil
+        let catName = visitLog.cat?.name ?? ""
+        
+        let viewModel = LogDetailViewModel(
+            logId: visitLog.id.stringValue,
+            logImage: image,
+            catIcon: catIcon ?? UIImage(systemName: "photo"),
+            catName: catName,
+            memo: visitLog.memo ?? ""
+        )
+        viewModel.delegate = self
+        
+        let detailVC = LogDetailViewController(viewModel: viewModel)
+        present(detailVC, animated: true)
+    }
+}
+
 extension LogViewController: WaterfallLayoutDelegate {
     func collectionView(_ collectionView: UICollectionView, heightForItemAt indexPath: IndexPath) -> CGFloat {
         let visitLog = visitLogsCache[indexPath.item]
@@ -219,5 +255,64 @@ extension LogViewController: WaterfallLayoutDelegate {
         
         let dummyCell = LogRecordCell()
         return dummyCell.calculateHeight(for: visitLog, width: cellWidth - 8)
+    }
+}
+
+extension LogViewController: LogDetailViewModelDelegate {
+    func logDetailViewModelDidRequestEdit(_ viewModel: LogDetailViewModel) {
+        dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            let logId = viewModel.getLogId()
+            
+            if let visitLog = self.visitLogsCache.first(where: { $0.id.stringValue == logId }) {
+                let logRecordVC = LogRecordViewController()
+                logRecordVC.editingLog = visitLog
+                
+                let nav = UINavigationController(rootViewController: logRecordVC)
+                nav.modalPresentationStyle = .pageSheet
+                
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithOpaqueBackground()
+                appearance.backgroundColor = .appBg
+                appearance.shadowColor = .clear
+                appearance.shadowImage = UIImage()
+                
+                nav.navigationBar.standardAppearance = appearance
+                nav.navigationBar.scrollEdgeAppearance = appearance
+                nav.navigationBar.compactAppearance = appearance
+                
+                if let sheet = nav.sheetPresentationController {
+                    sheet.detents = [.large()]
+                    sheet.prefersGrabberVisible = true
+                    sheet.preferredCornerRadius = 24
+                }
+                
+                self.present(nav, animated: true)
+            }
+        }
+    }
+    
+    func logDetailViewModelDidRequestDelete(_ viewModel: LogDetailViewModel) {
+        let alert = UIAlertController(
+            title: "기록 삭제",
+            message: "정말 삭제하시겠습니까?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            let logId = viewModel.getLogId()
+            
+            if let visitLog = self.visitLogsCache.first(where: { $0.id.stringValue == logId }) {
+                FileManager.deleteImage(fileName: visitLog.filePath)
+                try? RealmManager.shared.deleteVisitLog(withId: visitLog.id)
+                self.dismiss(animated: true) {
+                    self.viewWillAppearSubject.onNext(())
+                }
+            }
+        })
+        
+        presentedViewController?.present(alert, animated: true)
     }
 }

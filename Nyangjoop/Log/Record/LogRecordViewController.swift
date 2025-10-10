@@ -14,6 +14,14 @@ import CoreLocation
 
 final class LogRecordViewController: BaseViewController {
     var selectedCat: Cat?
+    var editingLog: VisitLog? {
+        didSet {
+            if isViewLoaded {
+                loadEditingData()
+            }
+        }
+    }
+    var isEditMode: Bool { editingLog != nil }
 
     private var disposeBag = DisposeBag()
     private let viewModel = LogRecordViewModel()
@@ -184,6 +192,39 @@ final class LogRecordViewController: BaseViewController {
         setupNavigationBar()
         setupKeyboardDismiss()
         updateCatSelectionUI()
+        
+        if editingLog != nil {
+            loadEditingData()
+        }
+    }
+    
+    private func loadEditingData() {
+        guard let editingLog = editingLog else { return }
+        
+        viewModel.editingLog = editingLog
+        
+        titleLabel.text = "기록 수정"
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy. MM. dd"
+        dateLabel.text = formatter.string(from: editingLog.date)
+        
+        if let image = FileManager.loadImage(fileName: editingLog.filePath) {
+            displaySelectedPhoto(image)
+            photoSelectedSubject.onNext(image)
+        }
+        
+        if let memo = editingLog.memo, !memo.isEmpty {
+            memoTextView.text = memo
+            memoPlaceholderLabel.isHidden = true
+        }
+        
+        selectedCat = editingLog.cat
+        selectedCatSubject.onNext(editingLog.cat)
+        updateCatSelectionUI()
+        
+        selectedCoordinate = CLLocationCoordinate2D(latitude: editingLog.lat, longitude: editingLog.lon)
+        locationSetSubject.onNext(CLLocationCoordinate2D(latitude: editingLog.lat, longitude: editingLog.lon))
     }
 
     override func configureHierarchy() {
@@ -313,6 +354,18 @@ final class LogRecordViewController: BaseViewController {
 
     private func setupNavigationBar() {
         navigationController?.setNavigationBarHidden(true, animated: false)
+        
+        if let navigationBar = navigationController?.navigationBar {
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = .appBg
+            appearance.shadowColor = .clear
+            appearance.shadowImage = UIImage()
+            
+            navigationBar.standardAppearance = appearance
+            navigationBar.scrollEdgeAppearance = appearance
+            navigationBar.compactAppearance = appearance
+        }
     }
     
     private func setupKeyboardDismiss() {

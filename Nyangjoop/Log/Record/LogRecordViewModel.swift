@@ -14,6 +14,9 @@ final class LogRecordViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
     private let realmManager = RealmManager.shared
     private let locationManager = LocationManager.shared
+    
+    var editingLog: VisitLog?
+    var isEditMode: Bool { editingLog != nil }
 
     struct Input {
         let viewDidLoad: Observable<Void>
@@ -144,7 +147,7 @@ final class LogRecordViewModel: ViewModelProtocol {
     private func saveVisitLog(memo: String) -> Observable<Result<Void, Error>> {
         return Observable.create { [weak self] observer in
             guard let self else {
-                observer.onNext(.failure(LogRecordError.noCatSelected))
+                observer.onNext(.failure(LogRecordError.unknown))
                 observer.onCompleted()
                 return Disposables.create()
             }
@@ -161,30 +164,58 @@ final class LogRecordViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
             
-            // 저장 시점에 이미지 저장
-            guard let savedImagePath = self.saveImageToDocuments() else {
-                observer.onNext(.failure(LogRecordError.imageSaveFailed))
-                observer.onCompleted()
-                return Disposables.create()
-            }
-
             let location = self.currentLocation ?? AppLocationConfig.defaultCoordinate
-
-            do {
-                let visitLog = VisitLog(catId: selectedCat.id,
-                                        date: Date(),
-                                        filePath: savedImagePath,
-                                        memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : memo,
-                                        lat: location.latitude,
-                                        lon: location.longitude)
-
-                try self.realmManager.saveVisitLog(visitLog, toCatId: selectedCat.id)
+            
+            // 수정 모드
+            if let editingLog = self.editingLog {
+                do {
+                    let oldImagePath = editingLog.filePath
+                    
+                    guard let savedImagePath = self.saveImageToDocuments() else {
+                        observer.onNext(.failure(LogRecordError.imageSaveFailed))
+                        observer.onCompleted()
+                        return Disposables.create()
+                    }
+                    
+                    try self.realmManager.getRealm().write {
+                        editingLog.filePath = savedImagePath
+                        editingLog.memo = memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : memo
+                        editingLog.lat = location.latitude
+                        editingLog.lon = location.longitude
+                    }
+                    
+                    FileManager.deleteImage(fileName: oldImagePath)
+                    
+                    NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
+                    observer.onNext(.success(()))
+                } catch {
+                    observer.onNext(.failure(LogRecordError.saveError(error)))
+                }
+            }
+            // 새로 추가 모드
+            else {
+                guard let savedImagePath = self.saveImageToDocuments() else {
+                    observer.onNext(.failure(LogRecordError.imageSaveFailed))
+                    observer.onCompleted()
+                    return Disposables.create()
+                }
                 
-                NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
-                
-                observer.onNext(.success(()))
-            } catch {
-                observer.onNext(.failure(LogRecordError.saveError(error)))
+                do {
+                    let visitLog = VisitLog(catId: selectedCat.id,
+                                            date: Date(),
+                                            filePath: savedImagePath,
+                                            memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : memo,
+                                            lat: location.latitude,
+                                            lon: location.longitude)
+
+                    try self.realmManager.saveVisitLog(visitLog, toCatId: selectedCat.id)
+                    
+                    NotificationCenter.default.post(name: NSNotification.Name("RefreshVisitLogs"), object: nil)
+                    
+                    observer.onNext(.success(()))
+                } catch {
+                    observer.onNext(.failure(LogRecordError.saveError(error)))
+                }
             }
 
             observer.onCompleted()
