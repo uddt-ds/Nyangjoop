@@ -68,7 +68,7 @@ final class LogDetailViewController: UIViewController {
         textView.font = UIFont(name: "MemomentKkukkukkR", size: 14) ?? .systemFont(ofSize: 14)
         textView.textColor = .label
         textView.isEditable = false
-        textView.isScrollEnabled = true
+        textView.isScrollEnabled = false
         textView.showsVerticalScrollIndicator = true
         textView.backgroundColor = .clear
         textView.textContainerInset = .zero
@@ -146,19 +146,16 @@ final class LogDetailViewController: UIViewController {
     }
     
     private func setupConstraints() {
-        let hasMemo = !viewModel.memo.isEmpty
-        let containerHeight: CGFloat = hasMemo ? 600 : 450
-        
-        containerView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalTo(containerHeight)
-        }
-        
         closeButton.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(16)
             make.leading.equalToSuperview().offset(16)
             make.width.height.equalTo(32)
+        }
+        
+        containerView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.leading.trailing.equalToSuperview().inset(20)
+            make.height.lessThanOrEqualTo(600)
         }
         
         containerStackView.snp.makeConstraints { make in
@@ -183,9 +180,13 @@ final class LogDetailViewController: UIViewController {
             make.height.equalTo(44)
         }
         
-        if hasMemo {
+        if !viewModel.memo.isEmpty {
+            let font = UIFont(name: "MemomentKkukkukkR", size: 14) ?? .systemFont(ofSize: 14)
+            let lineHeight = font.lineHeight
+            let maxHeight = lineHeight * 5
+            
             memoTextView.snp.makeConstraints { make in
-                make.height.greaterThanOrEqualTo(100)
+                make.height.lessThanOrEqualTo(maxHeight)
             }
         }
     }
@@ -206,6 +207,21 @@ final class LogDetailViewController: UIViewController {
         } else {
             memoTextView.text = viewModel.memo
             memoTextView.isHidden = false
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                let font = UIFont(name: "MemomentKkukkukkR", size: 14) ?? .systemFont(ofSize: 14)
+                let lineHeight = font.lineHeight
+                let maxHeight = lineHeight * 5
+                
+                let size = self.memoTextView.sizeThatFits(CGSize(width: self.memoTextView.bounds.width, height: .greatestFiniteMagnitude))
+                if size.height > maxHeight {
+                    self.memoTextView.isScrollEnabled = true
+                    self.memoTextView.snp.updateConstraints { make in
+                        make.height.lessThanOrEqualTo(maxHeight).priority(.required)
+                    }
+                }
+            }
         }
     }
     

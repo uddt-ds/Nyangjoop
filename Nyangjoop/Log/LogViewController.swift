@@ -293,23 +293,36 @@ extension LogViewController: LogDetailViewModelDelegate {
     }
     
     func logDetailViewModelDidRequestDelete(_ viewModel: LogDetailViewModel) {
+        let logId = viewModel.getLogId()
+        
+        guard let visitLog = self.visitLogsCache.first(where: { $0.id.stringValue == logId }),
+              let cat = visitLog.cat else { return }
+        
+        if cat.visitLogs.count <= 1 {
+            let alert = UIAlertController(
+                title: "삭제 불가",
+                message: "고양이의 마지막 기록은 삭제할 수 없어요\n고양이를 삭제하려면 마커에서 삭제해주세요",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            presentedViewController?.present(alert, animated: true)
+            return
+        }
+        
         let alert = UIAlertController(
             title: "기록 삭제",
-            message: "정말 삭제하시겠습니까?",
+            message: "함께 쌓은 추억이 사라져요\n 정말 삭제하시겠어요?",
             preferredStyle: .alert
         )
         
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
-        alert.addAction(UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "아니", style: .cancel))
+        alert.addAction(UIAlertAction(title: "응", style: .destructive) { [weak self] _ in
             guard let self = self else { return }
-            let logId = viewModel.getLogId()
             
-            if let visitLog = self.visitLogsCache.first(where: { $0.id.stringValue == logId }) {
-                FileManager.deleteImage(fileName: visitLog.filePath)
-                try? RealmManager.shared.deleteVisitLog(withId: visitLog.id)
-                self.dismiss(animated: true) {
-                    self.viewWillAppearSubject.onNext(())
-                }
+            FileManager.deleteImage(fileName: visitLog.filePath)
+            try? RealmManager.shared.deleteVisitLog(withId: visitLog.id)
+            self.dismiss(animated: true) {
+                self.viewWillAppearSubject.onNext(())
             }
         })
         
