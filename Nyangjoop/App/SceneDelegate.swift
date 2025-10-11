@@ -10,6 +10,7 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    private var secureField: UITextField?
 
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
@@ -19,6 +20,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let splashVC = SplashViewController()
         window?.rootViewController = splashVC
         window?.makeKeyAndVisible()
+        
+        if let window = window {
+            makeSecure(window: window)
+        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -47,6 +52,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Called as the scene transitions from the foreground to the background.
         // Use this method to save data, release shared resources, and store enough scene-specific state information
         // to restore the scene back to its current state.
+    }
+    
+    private func makeSecure(window: UIWindow) {
+        DispatchQueue.main.async { [weak self] in
+            let field = UITextField()
+            field.isSecureTextEntry = true
+            window.addSubview(field)
+            window.layer.superlayer?.addSublayer(field.layer)
+            field.layer.sublayers?.last?.addSublayer(window.layer)
+            self?.secureField = field
+        }
     }
 
 
