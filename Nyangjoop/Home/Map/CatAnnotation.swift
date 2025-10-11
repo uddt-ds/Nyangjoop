@@ -31,7 +31,7 @@ final class CatAnnotation: NSObject, MKAnnotation {
         self.cachedCoordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
         self.cachedTitle = cat.name
         
-        let lastVisit = cat.lastVisitDate?.formatted(date: .abbreviated, time:  .omitted) ?? "첫 만남"
+        let lastVisit = cat.lastVisitDate?.formatted(date: .abbreviated, time:  .omitted) ?? "묘험가"
         self.cachedSubtitle = "방문 횟수: \(cat.visitCount)회 | 최근: \(lastVisit)"
         
         super.init()

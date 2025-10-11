@@ -16,6 +16,8 @@ final class ProfileViewController: BaseViewController {
     private let viewModel = ProfileViewModel()
     
     private let viewWillAppearSubject = PublishSubject<Void>()
+    private var selectedAchievementType: AchievementType?
+    private var allAchievements: [ProfileViewModel.Achievement] = []
     
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -41,10 +43,52 @@ final class ProfileViewController: BaseViewController {
         return view
     }()
     
+    private let greetingStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.alignment = .leading
+        return stack
+    }()
+    
+    private let titleBadgeView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .key.withAlphaComponent(0.1)
+        view.layer.cornerRadius = 12
+        view.isHidden = true
+        return view
+    }()
+    
+    private let titleIconContainerView: UIView = {
+        let view = UIView()
+        return view
+    }()
+    
+    private let titleMedalBackgroundImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "medal")
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = .key
+        return imageView
+    }()
+    
+    private let titleIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = .white
+        return imageView
+    }()
+    
+    private let badgeTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.textColor = .key
+        return label
+    }()
+    
     private let greetingLabel: UILabel = {
         let label = UILabel()
-        label.text = "반가워요"
-        label.font = FontSystem.main.font
+        label.font = FontSystem.sub.font
         label.textColor = .label
         return label
     }()
@@ -52,6 +96,14 @@ final class ProfileViewController: BaseViewController {
     private let nicknameContainerView: UIView = {
         let view = UIView()
         return view
+    }()
+    
+    private let nicknameStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        return stack
     }()
     
     private let descriptionLabel: UILabel = {
@@ -140,25 +192,9 @@ final class ProfileViewController: BaseViewController {
 
     private let achievementContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray6
+        view.backgroundColor = .achievementBg
         view.layer.cornerRadius = 16
         return view
-    }()
-    
-    private let achievementOverlayView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor.systemGray5.withAlphaComponent(0.85)
-        view.layer.cornerRadius = 16
-        return view
-    }()
-
-    private let comingSoonLabel: UILabel = {
-        let label = UILabel()
-        label.text = "준비중"
-        label.font = .systemFont(ofSize: 16, weight: .bold)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        return label
     }()
     
     private let achievementScrollView: UIScrollView = {
@@ -246,12 +282,23 @@ final class ProfileViewController: BaseViewController {
             contentView.addSubview($0)
         }
         
-        [greetingLabel, nicknameContainerView].forEach {
-            greetingCardView.addSubview($0)
+        greetingCardView.addSubview(greetingStackView)
+        
+        [greetingLabel, titleBadgeView, nicknameContainerView].forEach {
+            greetingStackView.addArrangedSubview($0)
         }
         
+        titleBadgeView.addSubview(titleIconContainerView)
+        titleBadgeView.addSubview(badgeTitleLabel)
+        
+        [titleMedalBackgroundImageView, titleIconImageView].forEach {
+            titleIconContainerView.addSubview($0)
+        }
+        
+        nicknameContainerView.addSubview(nicknameStackView)
+        
         [descriptionLabel, editNicknameButton].forEach {
-            nicknameContainerView.addSubview($0)
+            nicknameStackView.addArrangedSubview($0)
         }
         
         [catsStackView, visitsStackView, achievementsStackView].forEach {
@@ -260,9 +307,6 @@ final class ProfileViewController: BaseViewController {
         
         achievementContainerView.addSubview(achievementScrollView)
         achievementScrollView.addSubview(achievementStackView)
-        
-        achievementContainerView.addSubview(achievementOverlayView)
-        achievementOverlayView.addSubview(comingSoonLabel)
     }
     
     override func configureLayout() {
@@ -286,29 +330,46 @@ final class ProfileViewController: BaseViewController {
         greetingCardView.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(20)
             make.horizontalEdges.equalToSuperview().inset(20)
-            make.height.equalTo(100)
         }
         
-        greetingLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(24)
-            make.leading.equalToSuperview().offset(20)
-        }
-        
-        nicknameContainerView.snp.makeConstraints { make in
-            make.top.equalTo(greetingLabel.snp.bottom).offset(8)
+        greetingStackView.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(16)
             make.leading.equalToSuperview().offset(20)
             make.trailing.lessThanOrEqualToSuperview().offset(-20)
+            make.bottom.equalToSuperview().offset(-16)
         }
         
-        descriptionLabel.snp.makeConstraints { make in
-            make.top.bottom.leading.equalToSuperview()
-            make.width.lessThanOrEqualTo(200)
+        titleBadgeView.snp.makeConstraints { make in
+            make.height.equalTo(28)
+        }
+        
+        titleIconContainerView.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(8)
+            make.centerY.equalToSuperview()
+            make.size.equalTo(20)
+        }
+        
+        titleMedalBackgroundImageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        titleIconImageView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview().offset(3)
+            make.centerX.equalToSuperview()
+            make.size.equalTo(8)
+        }
+        
+        badgeTitleLabel.snp.makeConstraints { make in
+            make.leading.equalTo(titleIconContainerView.snp.trailing).offset(4)
+            make.trailing.equalToSuperview().offset(-8)
+            make.centerY.equalToSuperview()
+        }
+        
+        nicknameStackView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
         
         editNicknameButton.snp.makeConstraints { make in
-            make.leading.equalTo(descriptionLabel.snp.trailing).offset(4)
-            make.centerY.equalTo(descriptionLabel)
-            make.trailing.equalToSuperview()
             make.size.equalTo(20)
         }
         
@@ -366,14 +427,6 @@ final class ProfileViewController: BaseViewController {
         achievementStackView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
             make.width.equalToSuperview()
-        }
-        
-        achievementOverlayView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        
-        comingSoonLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
         }
     }
     
@@ -451,7 +504,20 @@ final class ProfileViewController: BaseViewController {
             .drive(with: self) { owner, achievements in
                 let completedCount = achievements.filter { $0.isCompleted }.count
                 owner.achievementsCountLabel.text = "\(completedCount)"
+                owner.allAchievements = achievements
+                
+                print("=== 업적 디버깅 ===")
+                for achievement in achievements {
+                    print("\(achievement.title): isCompleted = \(achievement.isCompleted)")
+                }
+                
+                if owner.selectedAchievementType == nil {
+                    owner.selectedAchievementType = achievements.filter({ $0.isCompleted }).last?.type
+                    print("선택된 업적: \(String(describing: owner.selectedAchievementType?.rawValue))")
+                }
+                
                 owner.updateAchievements(achievements)
+                owner.updateTitle()
             }
             .disposed(by: disposeBag)
         
@@ -462,10 +528,23 @@ final class ProfileViewController: BaseViewController {
         output.showLogoutConfirm
             .drive()
             .disposed(by: disposeBag)
-
+        
         output.greetMessage
             .drive(greetingLabel.rx.text)
             .disposed(by: disposeBag)
+    }
+    
+    private func updateTitle() {
+        guard let selectedType = selectedAchievementType,
+              let selected = allAchievements.first(where: { $0.type == selectedType }),
+              selected.isCompleted else {
+            titleBadgeView.isHidden = true
+            return
+        }
+        
+        titleBadgeView.isHidden = false
+        badgeTitleLabel.text = selected.title
+        titleIconImageView.image = UIImage(named: selected.imageName)
     }
     
     private func updateAchievements(_ achievements: [ProfileViewModel.Achievement]) {
@@ -474,60 +553,19 @@ final class ProfileViewController: BaseViewController {
         }
         
         for achievement in achievements {
-            let achievementView = createAchievementItemView(
+            let achievementView = AchievementItemView()
+            achievementView.delegate = self
+            let isSelected = achievement.type == selectedAchievementType
+            achievementView.configure(
                 title: achievement.title,
                 description: achievement.description,
-                isCompleted: achievement.isCompleted
+                imageName: achievement.imageName,
+                achievementType: achievement.type,
+                isCompleted: achievement.isCompleted,
+                isSelected: isSelected
             )
             achievementStackView.addArrangedSubview(achievementView)
         }
-    }
-    
-    private func createAchievementItemView(title: String, description: String, isCompleted: Bool) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 12
-        
-        let titleLabel = UILabel()
-        titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        titleLabel.textColor = .label
-        
-        let descLabel = UILabel()
-        descLabel.text = description
-        descLabel.font = .systemFont(ofSize: 14)
-        descLabel.textColor = .secondaryLabel
-        
-        let checkmarkView = UIImageView()
-        checkmarkView.image = UIImage(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-        checkmarkView.tintColor = isCompleted ? .key : .systemGray4
-        checkmarkView.contentMode = .scaleAspectFit
-        
-        view.addSubview(titleLabel)
-        view.addSubview(descLabel)
-        view.addSubview(checkmarkView)
-        
-        view.snp.makeConstraints { make in
-            make.height.equalTo(80)
-        }
-        
-        titleLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(20)
-            make.leading.equalToSuperview().offset(20)
-        }
-        
-        descLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(4)
-            make.leading.equalToSuperview().offset(20)
-        }
-        
-        checkmarkView.snp.makeConstraints { make in
-            make.centerY.equalToSuperview()
-            make.trailing.equalToSuperview().offset(-20)
-            make.size.equalTo(24)
-        }
-        
-        return view
     }
     
     private func showLogoutAlert() {
@@ -543,5 +581,17 @@ final class ProfileViewController: BaseViewController {
         })
         
         present(alert, animated: true)
+    }
+}
+
+extension ProfileViewController: AchievementItemViewDelegate {
+    func achievementItemViewDidTap(_ view: AchievementItemView, achievement: AchievementType) {
+        if selectedAchievementType == achievement {
+            selectedAchievementType = nil
+        } else {
+            selectedAchievementType = achievement
+        }
+        updateAchievements(allAchievements)
+        updateTitle()
     }
 }

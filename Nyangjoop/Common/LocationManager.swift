@@ -168,6 +168,36 @@ final class LocationManager: NSObject {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
+    
+    func getAddressFromLocation(_ location: CLLocation) -> Single<String> {
+        return Single<String>.create { observer in
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(location) { placemarks, error in
+                if let error = error {
+                    observer(.failure(error))
+                    return
+                }
+                
+                guard let placemark = placemarks?.first else {
+                    observer(.failure(LocationError.locationUnavailable))
+                    return
+                }
+                
+                var addressComponents: [String] = []
+                
+                if let locality = placemark.locality {
+                    addressComponents.append(locality)
+                }
+                if let subLocality = placemark.subLocality {
+                    addressComponents.append(subLocality)
+                }
+                
+                let address = addressComponents.joined(separator: " ")
+                observer(.success(address))
+            }
+            return Disposables.create()
+        }
+    }
 }
 
 enum LocationError: Error, LocalizedError, Equatable {

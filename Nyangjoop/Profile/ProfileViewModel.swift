@@ -12,6 +12,7 @@ import RxCocoa
 final class ProfileViewModel: ViewModelProtocol {
     private var disposeBag = DisposeBag()
     private let realmManager = RealmManager.shared
+    private let locationManager = LocationManager.shared
 
     private let greetMessages = GreetMessage.allCases.map { $0.rawValue }
 
@@ -31,9 +32,10 @@ final class ProfileViewModel: ViewModelProtocol {
     }
     
     struct Achievement {
+        let type: AchievementType
         let title: String
         let description: String
-        let status: String
+        let imageName: String
         let isCompleted: Bool
     }
     
@@ -85,45 +87,46 @@ final class ProfileViewModel: ViewModelProtocol {
     }
     
     private func getAchievements() -> [Achievement] {
-        var achievements: [Achievement] = []
+        let catCount = RealmManager.shared.getTotalCatCount()
+        let photoCount = RealmManager.shared.getTotalPhotoCount()
         
-        // 모든 업적 준비중으로 변경
-        achievements.append(Achievement(
-            title: "첫 만남",
-            description: "첫 고양이를 등록하세요",
-            status: "준비중",
-            isCompleted: false
-        ))
+        checkCurrentLocationAddress()
         
-        achievements.append(Achievement(
-            title: "사진작가",
-            description: "사진 100장 촬영",
-            status: "준비중",
-            isCompleted: false
-        ))
+        let address = UserDefaults.standard.userAddress
         
-        achievements.append(Achievement(
-            title: "단골손님",
-            description: "7일 연속 방문",
-            status: "준비중",
-            isCompleted: false
-        ))
+        print("[ProfileViewModel] catCount: \(catCount), photoCount: \(photoCount), address: \(address ?? "nil")")
         
-        achievements.append(Achievement(
-            title: "고양이 집사",
-            description: "고양이 10마리 등록",
-            status: "준비중",
-            isCompleted: false
-        ))
+        let allAchievements = AchievementManager.shared.getAllAchievements(
+            catCount: catCount,
+            photoCount: photoCount,
+            address: address
+        )
         
-        achievements.append(Achievement(
-            title: "열정적인 집사",
-            description: "총 500번 방문",
-            status: "준비중",
-            isCompleted: false
-        ))
+        return allAchievements.map { achievement in
+            Achievement(
+                type: achievement.type,
+                title: achievement.type.rawValue,
+                description: achievement.type.description,
+                imageName: achievement.type.imageName,
+                isCompleted: achievement.isUnlocked
+            )
+        }
+    }
+    
+    private func checkCurrentLocationAddress() {
+        guard locationManager.isLocationEnabled else { return }
         
-        return achievements
+        locationManager.getCurrentLocation()
+            .flatMap { location in
+                self.locationManager.getAddressFromLocation(location)
+            }
+            .subscribe { address in
+                print("[ProfileViewModel] 현재 주소: \(address)")
+                UserDefaults.standard.userAddress = address
+            } onFailure: { error in
+                print("[ProfileViewModel] 주소 가져오기 실패: \(error.localizedDescription)")
+            }
+            .disposed(by: disposeBag)
     }
 
 }
