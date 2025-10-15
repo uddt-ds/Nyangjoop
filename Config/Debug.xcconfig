@@ -1,0 +1,15 @@
+//
+//  Debug.xcconfig
+//  Nyangjoop
+//
+//  Created by Lee on 10/13/25.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+
+#include "Secret.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.jean.Nyangjoop.dev
+APP_DISPLAY_NAME = 냥줍 개발
+API_BASE_URL = dapi.kakao.com

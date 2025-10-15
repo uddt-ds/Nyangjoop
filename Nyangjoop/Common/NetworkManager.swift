@@ -30,11 +30,17 @@ final class NetworkManager {
                 "radius": 2000
             ]
 
-            print("요청 URL: \(BaseURL.url)")
+            guard let baseURL = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String else {
+                print("baseURL 오류")
+                return Disposables.create()
+            }
+
+            let url = "https://" + baseURL + "/v2/local/search/keyword"
+
             print("요청 파라미터: \(parameters)")
 
             let request = AF.request(
-                BaseURL.url,
+                url,
                 method: .get,
                 parameters: parameters,
                 encoding: URLEncoding.default,
