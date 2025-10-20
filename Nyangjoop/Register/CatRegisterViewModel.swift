@@ -49,21 +49,20 @@ final class CatRegisterViewModel: ViewModelProtocol {
     private var originalImageData: Data?
     private var extractedLocation: CLLocationCoordinate2D?
     private var extractedDate: Date?
+    private var userDidChangeDate: Bool = false
     private var manualLocation: CLLocationCoordinate2D?
     private var imagePath: String?
     private var defaultImageName: String?
     
     func loadInitialLocation() {
-        print("[ViewModel] loadInitialLocation 호출 - isEditMode: \(isEditMode), editingCat: \(String(describing: editingCat?.name))")
-        
         guard isEditMode, let cat = editingCat else {
-            print("[ViewModel] loadInitialLocation - guard 실패")
             return
         }
         
+        userDidChangeDate = true
+        
         let coordinate = CLLocationCoordinate2D(latitude: cat.lat, longitude: cat.lon)
         manualLocation = coordinate
-        print("[ViewModel] loadInitialLocation - 기존 좌표 설정: \(coordinate.latitude), \(coordinate.longitude)")
         
         // 좌표로부터 주소 가져오기
         getAddressFromCoordinate(coordinate)
@@ -85,6 +84,9 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 
                 self.selectedImage = photoWithMetadata.image
                 self.originalImageData = photoWithMetadata.originalData
+                
+                // 새로운 사진을 선택하면 날짜 변경 플래그 초기화
+                self.userDidChangeDate = false
                 
                 // 메타데이터에서 추출된 정보 저장
                 if let location = photoWithMetadata.location {
@@ -144,6 +146,14 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return self.getAddressFromCoordinate(coordinate)
             }
             .bind(to: locationTextRelay)
+            .disposed(by: disposeBag)
+        
+        // 사용자가 날짜를 직접 변경하면 플래그 설정
+        input.dateSelected
+            .skip(1)
+            .subscribe(with: self) { owner, _ in
+                owner.userDidChangeDate = true
+            }
             .disposed(by: disposeBag)
 
         let locationText = locationTextRelay.asDriver()
@@ -285,8 +295,15 @@ final class CatRegisterViewModel: ViewModelProtocol {
                 return Disposables.create()
             }
 
-            // 메타데이터에서 추출된 날짜 우선 사용
-            let finalDate = self.extractedDate ?? date
+            // 날짜 결정: 사용자가 직접 변경했으면 사용자 선택 날짜, 아니면 메타데이터 날짜
+            let finalDate: Date
+            if self.userDidChangeDate {
+                finalDate = date
+            } else if let extractedDate = self.extractedDate {
+                finalDate = extractedDate
+            } else {
+                finalDate = date
+            }
 
             do {
                 if self.isEditMode, let existingCat = self.editingCat {
