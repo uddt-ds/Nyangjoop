@@ -87,6 +87,9 @@ final class CustomTabBarController: UIViewController {
                     self.presentCatRegisterViewController()
                 case 2:
                     print("로그 화면으로 이동")
+                    if self.selectedIndex == 1 {
+                        AnalyticsManager.shared.logDuplicateLogTabTap()
+                    }
                     self.selectedIndex = 1
                 default:
                     break
