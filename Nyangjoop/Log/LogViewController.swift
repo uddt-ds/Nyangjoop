@@ -80,12 +80,30 @@ final class LogViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCollectionView()
+        setupNotifications()
         bind()
     }
     
     private func setupCollectionView() {
         logCollectionView.dataSource = self
         logCollectionView.delegate = self
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCatRegistered),
+            name: NSNotification.Name("CatRegistered"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleCatRegistered() {
+        viewWillAppearSubject.onNext(())
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     override func viewWillAppear(_ animated: Bool) {

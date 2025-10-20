@@ -1036,8 +1036,9 @@ extension CatRegisterViewController {
 
     private func showRegistrationSuccessAlert(message: String) {
         showSuccessAlert(message: message) { [weak self] in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                NotificationCenter.default.post(name: NSNotification.Name("CatRegistered"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("CatRegistered"), object: nil)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self?.dismiss(animated: true)
             }
         }
