@@ -1,0 +1,121 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+
+    ]
+  },
+  "identifier" : "E3C39B38",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1000",
+      "familyShareable" : false,
+      "internalID" : "992C9186",
+      "localizations" : [
+        {
+          "description" : "츄르 10개입니다",
+          "displayName" : "츄르 10개",
+          "locale" : "ko"
+        }
+      ],
+      "productID" : "com.jean.Nyangjoop.Chur10",
+      "promotionalImageID" : "6B903134",
+      "referenceName" : "Chur10",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "10000",
+      "familyShareable" : false,
+      "internalID" : "333AF0F9",
+      "localizations" : [
+        {
+          "description" : "츄르 100개입니다",
+          "displayName" : "츄르 100개",
+          "locale" : "ko"
+        }
+      ],
+      "productID" : "com.jean.Nyangjoop.Chur100",
+      "promotionalImageID" : "6B903134",
+      "referenceName" : "Chur100",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "100000",
+      "familyShareable" : false,
+      "internalID" : "F621CB9E",
+      "localizations" : [
+        {
+          "description" : "츄르 1000개입니다",
+          "displayName" : "츄르 1000개",
+          "locale" : "ko"
+        }
+      ],
+      "productID" : "com.jean.Nyangjoop.Chur1000",
+      "promotionalImageID" : "6B903134",
+      "referenceName" : "Chur1000",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ko",
+    "_storefront" : "KOR",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

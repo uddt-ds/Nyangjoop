@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9B79448D2EA524280023C8C3 /* Local.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 9B79448C2EA524280023C8C3 /* Local.storekit */; };
 		9BCB01E92E868953005493A9 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB01E82E868953005493A9 /* SnapKit */; };
 		9BCB01EC2E868968005493A9 /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB01EB2E868968005493A9 /* RxCocoa */; };
 		9BCB01EE2E868968005493A9 /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCB01ED2E868968005493A9 /* RxRelay */; };
@@ -19,6 +20,7 @@
 		9BCEADCC2E97CFBA00024B99 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCB2E97CFBA00024B99 /* FirebaseAnalytics */; };
 		9BCEADCE2E97CFBA00024B99 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */; };
 		9BCEADD02E97CFBA00024B99 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */; };
+		9BD465B02EA11575009D1FAE /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 9BD465AF2EA11575009D1FAE /* GoogleMobileAds */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,6 +38,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9B79448C2EA524280023C8C3 /* Local.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Local.storekit; sourceTree = "<group>"; };
 		9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nyangjoop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -72,6 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9BD465B02EA11575009D1FAE /* GoogleMobileAds in Frameworks */,
 				9BCEACB32E95CFC200024B99 /* Toast in Frameworks */,
 				9BCB09712E90B596005493A9 /* IQKeyboardManagerSwift in Frameworks */,
 				9BCB01EE2E868968005493A9 /* RxRelay in Frameworks */,
@@ -92,6 +96,7 @@
 		9BCBFD892E84C4A3005493A9 = {
 			isa = PBXGroup;
 			children = (
+				9B79448C2EA524280023C8C3 /* Local.storekit */,
 				9BCBFD942E84C4A3005493A9 /* Nyangjoop */,
 				9B8A67032E9CE92A00255411 /* Config */,
 				9BCBFD932E84C4A3005493A9 /* Products */,
@@ -141,6 +146,7 @@
 				9BCEADCB2E97CFBA00024B99 /* FirebaseAnalytics */,
 				9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */,
 				9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */,
+				9BD465AF2EA11575009D1FAE /* GoogleMobileAds */,
 			);
 			productName = Nyangjoop;
 			productReference = 9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */;
@@ -178,6 +184,7 @@
 				9BCB096F2E90B596005493A9 /* XCRemoteSwiftPackageReference "IQKeyboardManager" */,
 				9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */,
 				9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				9BD465AE2EA11575009D1FAE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BCBFD932E84C4A3005493A9 /* Products */;
@@ -194,6 +201,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9B79448D2EA524280023C8C3 /* Local.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,6 +284,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "고양이의 사진을 찍고 맵에 등록 및 기록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "사용자 맞춤 서비스 제공을 위해 권한을 허용해주세요. 애플 정책 기반 개인화된 광고 제공 목적으로만 사용됩니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
@@ -319,6 +328,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "고양이의 사진을 찍고 맵에 등록 및 기록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "사용자 맞춤 서비스 제공을 위해 권한을 허용해주세요. 애플 정책 기반 개인화된 광고 제공 목적으로만 사용됩니다.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
@@ -549,6 +559,14 @@
 				minimumVersion = 12.4.0;
 			};
 		};
+		9BD465AE2EA11575009D1FAE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -606,6 +624,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		9BD465AF2EA11575009D1FAE /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BD465AE2EA11575009D1FAE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
