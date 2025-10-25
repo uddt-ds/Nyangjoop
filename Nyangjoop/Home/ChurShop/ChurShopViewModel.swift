@@ -40,7 +40,7 @@ final class ChurShopViewModel {
     }
 
     func loadRewardAd() {
-        adManager.loadAd(with: AdConfig.rewardedAdUnitID)
+        adManager.loadAd(with: AdConfig.rewardInterstitialAdUnitID)
     }
 
     func showRewardAd(from viewController: UIViewController) {
@@ -49,12 +49,14 @@ final class ChurShopViewModel {
             return
         }
         
-        guard adManager.isAdReady else {
+        if adManager.isAdReady {
+            adManager.showAd(from: viewController)
+        } else {
+            print("[ChurShopViewModel] 광고 로드 시작 - ViewController 저장")
+            adManager.requestingViewController = viewController
+            adManager.shouldShowHouseAdOnFailure = true
             loadRewardAd()
-            return
         }
-
-        adManager.showAd(from: viewController)
     }
 
     var isReady: Bool {
@@ -99,6 +101,35 @@ final class ChurShopViewModel {
             }
         }
     }
+    
+    private func showHouseAd(from viewController: UIViewController) {
+        let houseAdVC = HouseAdViewController()
+        houseAdVC.modalPresentationStyle = .overFullScreen
+        houseAdVC.modalTransitionStyle = .crossDissolve
+        
+        houseAdVC.onComplete = { [weak self] didGiveReward in
+            guard let self = self else { return }
+            
+            if didGiveReward {
+                let churToAdd = 1
+                self.churService.addChur(amount: churToAdd)
+                self.adTracker.incrementAdCount()
+                
+                NotificationCenter.default.post(name: NSNotification.Name("ChurCountUpdated"), object: nil)
+                
+                self.delegate?.showRewardSuccess(churCount: self.churService.currentChurCount)
+                self.delegate?.updateAdCell()
+            }
+        }
+        
+        houseAdVC.onAction = { [weak self] in
+            if let churShopVC = viewController as? ChurShopViewController {
+                print("[ChurShopViewModel] 광고 제거 상품으로 이동")
+            }
+        }
+        
+        viewController.present(houseAdVC, animated: true)
+    }
 }
 
 extension ChurShopViewModel: RewardAdManagerDelegate {
@@ -108,7 +139,13 @@ extension ChurShopViewModel: RewardAdManagerDelegate {
     }
     
     func rewardAdDidFailToLoad(with error: any Error) {
-        delegate?.showToast(message: "광고를 불러올 수 없습니다")
+        // 토스트 제거 - shouldShowHouseAd가 대신 호출됨
+        print("[ChurShopViewModel] 광고 로드 최종 실패 - 하우스 광고 대기 중")
+    }
+    
+    func shouldShowHouseAd(from viewController: UIViewController) {
+        print("[ChurShopViewModel] 하우스 광고 표시")
+        showHouseAd(from: viewController)
     }
     
     func rewardAdDidPresent() {

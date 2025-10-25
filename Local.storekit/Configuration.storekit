@@ -57,6 +57,21 @@
       "promotionalImageID" : "6B903134",
       "referenceName" : "Chur1000",
       "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3300",
+      "familyShareable" : false,
+      "internalID" : "125F43DF",
+      "localizations" : [
+        {
+          "description" : "고양이 등록 시 뜨는 전면 광고가 제거됩니다",
+          "displayName" : "광고 제거",
+          "locale" : "ko"
+        }
+      ],
+      "productID" : "com.jean.Nyangjoop.RemoveAds",
+      "referenceName" : "removeAds",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

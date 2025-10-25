@@ -24,6 +24,12 @@ final class AdTriggerService {
     }
     
     func checkAndShowAdIfNeeded(from viewController: UIViewController, completion: @escaping () -> Void) {
+        if InAppPurchaseManager.shared.hasRemovedAds {
+            print("[AdTriggerService] 광고 제거 구매 완료 - 광고 스킵")
+            completion()
+            return
+        }
+        
         let currentCount = UserDefaults.standard.catRegistrationCount
         
         print("[AdTriggerService] 현재 등록 횟수: \(currentCount), 다음 광고: \(triggerInterval)의 배수")

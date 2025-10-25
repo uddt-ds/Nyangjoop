@@ -36,6 +36,7 @@ final class ChurShopViewController: BaseViewController {
         collectionView.delegate = self
         collectionView.register(ChurShopAdCell.self, forCellWithReuseIdentifier: ChurShopAdCell.identifier)
         collectionView.register(ChurShopItemCell.self, forCellWithReuseIdentifier: ChurShopItemCell.identifier)
+        collectionView.register(AdRemovalCell.self, forCellWithReuseIdentifier: AdRemovalCell.identifier)
         collectionView.isScrollEnabled = false
         return collectionView
     }()
@@ -47,11 +48,17 @@ final class ChurShopViewController: BaseViewController {
         return indicator
     }()
     
-    private let shopItems: [(percentage: String?, count: String, price: String?, productID: String?)] = [
-        (nil, "x 1", nil, nil),
-        ("100%", "x 10", "₩1,000", "com.jean.Nyangjoop.Chur10"),
-        ("100%", "x 100", "₩10,000", "com.jean.Nyangjoop.Chur100"),
-        ("100%", "x 1000", "₩100,000", "com.jean.Nyangjoop.Chur1000")
+    private enum ShopItemType {
+        case rewardAd
+        case churPurchase
+        case adRemoval
+    }
+    
+    private let shopItems: [(type: ShopItemType, percentage: String?, count: String?, price: String?, productID: String?)] = [
+        (.rewardAd, nil, "x 1", nil, nil),
+        (.churPurchase, "100%", "x 10", "₩1,000", "com.jean.Nyangjoop.Chur10"),
+        (.churPurchase, "100%", "x 100", "₩10,000", "com.jean.Nyangjoop.Chur100"),
+        (.adRemoval, nil, nil, "₩3,300", "com.jean.Nyangjoop.RemoveAds")
     ]
 
     init() {
@@ -68,6 +75,7 @@ final class ChurShopViewController: BaseViewController {
         setupActions()
         viewModel.delegate = self
         viewModel.loadRewardAd()
+        observeAdRemovalStatus()
     }
     
     override func configureHierarchy() {
@@ -149,6 +157,21 @@ final class ChurShopViewController: BaseViewController {
         view.addGestureRecognizer(tapGesture)
     }
     
+    private func observeAdRemovalStatus() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAdRemovalStatusChanged),
+            name: .adRemovalStatusChanged,
+            object: nil
+        )
+    }
+    
+    @objc private func handleAdRemovalStatusChanged() {
+        DispatchQueue.main.async { [weak self] in
+            self?.collectionView.reloadData()
+        }
+    }
+    
     @objc private func closeButtonTapped() {
         dismiss(animated: true)
     }
@@ -164,15 +187,53 @@ final class ChurShopViewController: BaseViewController {
         print("[ChurShopViewController] handleItemSelection called with index: \(index)")
         let item = shopItems[index]
         
-        if let productID = item.productID {
-            print("[ChurShopViewController] Purchasing product: \(productID)")
-            viewModel.purchaseProduct(productID: productID)
-        } else {
+        switch item.type {
+        case .rewardAd:
             print("[ChurShopViewController] Showing reward ad")
             if !viewModel.isReady {
                 loadingIndicator.startAnimating()
             }
             viewModel.showRewardAd(from: self)
+            
+        case .churPurchase:
+            if let productID = item.productID {
+                print("[ChurShopViewController] Purchasing chur product: \(productID)")
+                viewModel.purchaseProduct(productID: productID)
+            }
+            
+        case .adRemoval:
+            if InAppPurchaseManager.shared.hasRemovedAds {
+                showAlert(title: "알림", message: "이미 광고 제거를 구매하셨습니다.")
+            } else if let productID = item.productID {
+                print("[ChurShopViewController] Purchasing ad removal: \(productID)")
+                loadingIndicator.startAnimating()
+                Task {
+                    do {
+                        guard let product = await InAppPurchaseManager.shared.getProduct(for: productID) else {
+                            await MainActor.run {
+                                loadingIndicator.stopAnimating()
+                                showAlert(title: "오류", message: "상품을 찾을 수 없습니다.")
+                            }
+                            return
+                        }
+                        
+                        _ = try await InAppPurchaseManager.shared.purchase(product)
+                        await MainActor.run {
+                            loadingIndicator.stopAnimating()
+                            showAlert(title: "구매 완료", message: "광고가 제거되었습니다!")
+                        }
+                    } catch {
+                        await MainActor.run {
+                            loadingIndicator.stopAnimating()
+                            if let purchaseError = error as? PurchaseError {
+                                showAlert(title: "구매 실패", message: purchaseError.localizedDescription)
+                            } else {
+                                showAlert(title: "구매 실패", message: error.localizedDescription)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -180,6 +241,10 @@ final class ChurShopViewController: BaseViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 
@@ -202,7 +267,8 @@ extension ChurShopViewController: UICollectionViewDataSource {
         print("[ChurShopViewController] cellForItemAt: \(indexPath.item)")
         let item = shopItems[indexPath.item]
         
-        if indexPath.item == 0 {
+        switch item.type {
+        case .rewardAd:
             guard let cell = collectionView.dequeueReusableCell(
                 withReuseIdentifier: ChurShopAdCell.identifier,
                 for: indexPath
@@ -211,7 +277,20 @@ extension ChurShopViewController: UICollectionViewDataSource {
             }
             cell.configure(isEnabled: viewModel.canShowAd, remainingCount: viewModel.remainingAds)
             return cell
-        } else {
+            
+        case .adRemoval:
+            guard let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: AdRemovalCell.identifier,
+                for: indexPath
+            ) as? AdRemovalCell else {
+                return UICollectionViewCell()
+            }
+            
+            let isPurchased = InAppPurchaseManager.shared.hasRemovedAds
+            cell.configure(price: item.price, isPurchased: isPurchased)
+            return cell
+            
+        case .churPurchase:
             guard let cell = collectionView.dequeueReusableCell(
                 withReuseIdentifier: ChurShopItemCell.identifier,
                 for: indexPath
@@ -221,7 +300,7 @@ extension ChurShopViewController: UICollectionViewDataSource {
             
             cell.configure(
                 percentage: item.percentage,
-                number: item.count,
+                number: item.count ?? "",
                 price: item.price
             )
             return cell
