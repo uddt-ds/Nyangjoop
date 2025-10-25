@@ -9,16 +9,19 @@ import UIKit
 import RxSwift
 import RxCocoa
 import SnapKit
+import GoogleMobileAds
 
 final class ProfileViewController: BaseViewController {
-    
+
+    private var bannerHeightConstraint: Constraint?
+
     private var disposeBag = DisposeBag()
     private let viewModel = ProfileViewModel()
     
     private let viewWillAppearSubject = PublishSubject<Void>()
     private var selectedAchievementType: AchievementType?
     private var allAchievements: [ProfileViewModel.Achievement] = []
-    
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -221,6 +224,72 @@ final class ProfileViewController: BaseViewController {
         button.layer.borderColor = UIColor.systemRed.cgColor
         return button
     }()
+
+    private var bannerView: BannerView!
+    private var isBannerLoaded = false
+    
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
+    
+    override func configureHierarchy() {
+        if bannerView == nil {
+            setupBannerView()
+        }
+
+        super.configureHierarchy()
+        
+        view.addSubview(titleLabel)
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        
+        [greetingCardView, bannerView, activityHeaderLabel, activityCardView,
+         achievementHeaderLabel, achievementContainerView/*, logoutButton*/].forEach {
+            contentView.addSubview($0)
+        }
+
+        greetingCardView.addSubview(greetingStackView)
+        
+        [greetingLabel, titleBadgeView, nicknameContainerView].forEach {
+            greetingStackView.addArrangedSubview($0)
+        }
+        
+        titleBadgeView.addSubview(titleIconContainerView)
+        titleBadgeView.addSubview(badgeTitleLabel)
+        
+        [titleMedalBackgroundImageView, titleIconImageView].forEach {
+            titleIconContainerView.addSubview($0)
+        }
+        
+        nicknameContainerView.addSubview(nicknameStackView)
+        
+        [descriptionLabel, editNicknameButton].forEach {
+            nicknameStackView.addArrangedSubview($0)
+        }
+        
+        [catsStackView, visitsStackView, achievementsStackView].forEach {
+            activityCardView.addSubview($0)
+        }
+        
+        achievementContainerView.addSubview(achievementScrollView)
+        achievementScrollView.addSubview(achievementStackView)
+    }
+    
+    private func setupBannerView() {
+        let viewWidth = view.frame.width - 40
+        let (banner, isReady) = BannerAdManager.shared.getBannerView(for: self, width: viewWidth)
+        bannerView = banner
+        bannerView.delegate = self
+        
+        if isReady {
+            print("[프로필] 미리 로드된 광고 즉시 표시")
+            bannerView.alpha = 1
+            isBannerLoaded = true
+        } else {
+            print("[프로필] 광고 로드 대기 중")
+            bannerView.alpha = 0
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -239,7 +308,6 @@ final class ProfileViewController: BaseViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // CustomTabBar 다시 보이기
         showCustomTabBar()
     }
     
@@ -268,45 +336,6 @@ final class ProfileViewController: BaseViewController {
     private func updateNickname() {
         let nickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
         descriptionLabel.text = "\(nickname)님"
-    }
-    
-    override func configureHierarchy() {
-        super.configureHierarchy()
-        
-        view.addSubview(titleLabel)
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        
-        [greetingCardView, activityHeaderLabel, activityCardView,
-         achievementHeaderLabel, achievementContainerView/*, logoutButton*/].forEach {
-            contentView.addSubview($0)
-        }
-        
-        greetingCardView.addSubview(greetingStackView)
-        
-        [greetingLabel, titleBadgeView, nicknameContainerView].forEach {
-            greetingStackView.addArrangedSubview($0)
-        }
-        
-        titleBadgeView.addSubview(titleIconContainerView)
-        titleBadgeView.addSubview(badgeTitleLabel)
-        
-        [titleMedalBackgroundImageView, titleIconImageView].forEach {
-            titleIconContainerView.addSubview($0)
-        }
-        
-        nicknameContainerView.addSubview(nicknameStackView)
-        
-        [descriptionLabel, editNicknameButton].forEach {
-            nicknameStackView.addArrangedSubview($0)
-        }
-        
-        [catsStackView, visitsStackView, achievementsStackView].forEach {
-            activityCardView.addSubview($0)
-        }
-        
-        achievementContainerView.addSubview(achievementScrollView)
-        achievementScrollView.addSubview(achievementStackView)
     }
     
     override func configureLayout() {
@@ -338,7 +367,13 @@ final class ProfileViewController: BaseViewController {
             make.trailing.lessThanOrEqualToSuperview().offset(-20)
             make.bottom.equalToSuperview().offset(-16)
         }
-        
+
+        bannerView.snp.makeConstraints { make in
+            make.top.equalTo(greetingCardView.snp.bottom).offset(10)
+            make.leading.trailing.equalToSuperview().inset(20)
+            bannerHeightConstraint = make.height.equalTo(bannerView.frame.height).constraint
+        }
+
         titleBadgeView.snp.makeConstraints { make in
             make.height.equalTo(28)
         }
@@ -374,10 +409,10 @@ final class ProfileViewController: BaseViewController {
         }
         
         activityHeaderLabel.snp.makeConstraints { make in
-            make.top.equalTo(greetingCardView.snp.bottom).offset(32)
+            make.top.equalTo(bannerView.snp.bottom).offset(20)
             make.leading.equalToSuperview().offset(20)
         }
-        
+
         activityCardView.snp.makeConstraints { make in
             make.top.equalTo(activityHeaderLabel.snp.bottom).offset(12)
             make.horizontalEdges.equalToSuperview().inset(20)
@@ -435,7 +470,7 @@ final class ProfileViewController: BaseViewController {
         view.backgroundColor = .appBg
         setupActivityViews()
     }
-    
+
     private func configureNavigationBar() {
         navigationController?.navigationBar.tintColor = .label
     }
@@ -593,5 +628,28 @@ extension ProfileViewController: AchievementItemViewDelegate {
         }
         updateAchievements(allAchievements)
         updateTitle()
+    }
+}
+
+// MARK: - GADBannerViewDelegate
+extension ProfileViewController: BannerViewDelegate {
+
+    func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+        print("배너 광고 로드 성공")
+        if !isBannerLoaded {
+            isBannerLoaded = true
+            UIView.animate(withDuration: 0.3) {
+                bannerView.alpha = 1
+            }
+        }
+    }
+
+    func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+        print("배너 광고 로드 실패: \(error.localizedDescription)")
+        bannerView.alpha = 0
+    }
+
+    func bannerViewDidRecordClick(_ bannerView: BannerView) {
+        print("배너 광고 클릭됨")
     }
 }

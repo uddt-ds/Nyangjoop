@@ -68,6 +68,46 @@ final class HomeViewController: BaseViewController {
         button.layer.borderColor = UIColor.lightGray.cgColor
         return button
     }()
+    
+    private let churContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.churBg.withAlphaComponent(0.5)
+        view.layer.cornerRadius = 22
+        return view
+    }()
+    
+    private let churImageBackgroundView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 18
+        return view
+    }()
+    
+    private let churImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = .chur
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+    
+    private let churCountLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textColor = .white
+        label.textAlignment = .center
+        return label
+    }()
+    
+    private let churAddButton: UIButton = {
+        let button = UIButton()
+        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .bold)
+        let image = UIImage(systemName: "plus", withConfiguration: config)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(image, for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = .key
+        button.layer.cornerRadius = 22
+        return button
+    }()
 
     private let menuToggleButton: UIButton = {
         let button = UIButton()
@@ -125,6 +165,7 @@ final class HomeViewController: BaseViewController {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: true)
         viewWillAppearSubject.onNext(())
+        updateChurCountLabel()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -139,7 +180,12 @@ final class HomeViewController: BaseViewController {
     override func configureHierarchy() {
         super.configureHierarchy()
 
-        [mapView, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton, clearRouteButton].forEach { view.addSubview($0) }
+        [mapView, churContainerView, churAddButton, profileButton, menuToggleButton, storeToggleButton, galleryToggleButton, currentLocationButton, clearRouteButton].forEach { view.addSubview($0) }
+        
+        churContainerView.addSubview(churImageBackgroundView)
+        churImageBackgroundView.addSubview(churImageView)
+        
+        churContainerView.addSubview(churCountLabel)
     }
 
     override func configureLayout() {
@@ -148,6 +194,41 @@ final class HomeViewController: BaseViewController {
             make.edges.equalToSuperview()
         }
 
+        churContainerView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            make.leading.equalToSuperview().offset(20)
+            make.height.equalTo(44)
+            make.width.equalTo(120)
+        }
+        
+        churImageBackgroundView.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(4)
+            make.centerY.equalToSuperview()
+            make.size.equalTo(36)
+        }
+        
+        churImageView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.size.equalTo(24)
+        }
+        
+        churCountLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview().offset(10)
+            make.centerY.equalToSuperview()
+        }
+        
+        churAddButton.snp.makeConstraints { make in
+            make.centerX.equalTo(churContainerView.snp.trailing)
+            make.centerY.equalTo(churContainerView)
+            make.size.equalTo(44)
+        }
+        
+        churContainerView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            make.leading.equalToSuperview().offset(20)
+            make.height.equalTo(44)
+        }
+        
         profileButton.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(10)
             make.trailing.equalToSuperview().offset(-20)
@@ -238,10 +319,34 @@ extension HomeViewController {
             name: NSNotification.Name("HideCallout"),
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleChurCountUpdated),
+            name: NSNotification.Name("ChurCountUpdated"),
+            object: nil
+        )
+    }
+    
+    private func updateChurCountLabel() {
+        let churCount = ChurService.shared.currentChurCount
+        churCountLabel.text = "\(churCount)"
+    }
+    
+    private func showChurAddAlert() {
+        let churShopVC = ChurShopViewController()
+        churShopVC.modalPresentationStyle = .overFullScreen
+        churShopVC.modalTransitionStyle = .crossDissolve
+        present(churShopVC, animated: true)
+    }
+    
+    @objc private func handleChurCountUpdated() {
+        updateChurCountLabel()
     }
     
     @objc private func handleCatRegistered() {
         viewWillAppearSubject.onNext(())
+        updateChurCountLabel()
     }
     
     @objc private func handleHideCallout() {
@@ -360,6 +465,12 @@ extension HomeViewController {
         clearRouteButton.rx.tap
             .subscribe(with: self) { owner, _ in
                 owner.clearRoute()
+            }
+            .disposed(by: disposeBag)
+        
+        churAddButton.rx.tap
+            .subscribe(with: self) { owner, _ in
+                owner.showChurAddAlert()
             }
             .disposed(by: disposeBag)
     }

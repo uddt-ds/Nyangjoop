@@ -9,11 +9,20 @@ import UIKit
 import IQKeyboardManagerSwift
 import FirebaseCore
 import FirebaseMessaging
+import GoogleMobileAds
+import AppTrackingTransparency
+import AdSupport
+
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+        MobileAds.shared.start()
+        
+        let bannerWidth = UIScreen.main.bounds.width - 40
+        BannerAdManager.shared.preloadBannerAd(width: bannerWidth)
 
         IQKeyboardManager.shared.isEnabled = true
         IQKeyboardManager.shared.resignOnTouchOutside = true

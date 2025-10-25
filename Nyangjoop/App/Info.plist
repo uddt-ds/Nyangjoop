@@ -4,6 +4,14 @@
 <dict>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>AdBannerUnitID</key>
+	<string>$(AD_BANNER_UNIT_ID)</string>
+	<key>AdInterstitialUnitID</key>
+	<string>$(AD_INTERSTITIAL_UNIT_ID)</string>
+	<key>AdRewardInterstitialUnitID</key>
+	<string>$(AD_REWARD_INTERSTITIAL_UNIT_ID)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-8354537461647039~5959960222</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>MemomentKkukkukkR.ttf</string>

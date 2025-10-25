@@ -26,9 +26,9 @@ final class CatRegisterViewController: BaseViewController {
     
     private let isEditMode: Bool
     private let editingCat: Cat?
-    var onCatUpdated: (() -> Void)?
     private var hasConfigured: Bool = false
-    
+    var onCatUpdated: (() -> Void)?
+
     init(isEditMode: Bool = false, editingCat: Cat? = nil) {
         self.isEditMode = isEditMode
         self.editingCat = editingCat
@@ -390,6 +390,8 @@ final class CatRegisterViewController: BaseViewController {
             selectGenderButton(unknownGenderButton)
             genderSelectedSubject.onNext(2)
         }
+
+        InterstitialAdManager.shared.loadInterstitialAd()
 
         bind()
     }
@@ -785,7 +787,7 @@ final class CatRegisterViewController: BaseViewController {
         }
         
         registerButton.setTitle("수정하기", for: .normal)
-            }
+    }
     
     private func loadCatImage(from imagePath: String) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -937,7 +939,22 @@ extension CatRegisterViewController {
 
         output.registrationCompleted
             .drive(with: self) { owner, message in
-                owner.showRegistrationSuccessAlert(message: message)
+                owner.showSuccessAlert(message: message) {
+                    if !owner.isEditMode {
+                        AdTriggerService.shared.incrementRegistrationCount()
+                    }
+                    
+                    AdTriggerService.shared.checkAndShowAdIfNeeded(from: owner) {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("CatRegistered"),
+                            object: nil
+                        )
+
+                        DispatchQueue.main.async {
+                            owner.dismiss(animated: true)
+                        }
+                    }
+                }
             }
             .disposed(by: disposeBag)
 

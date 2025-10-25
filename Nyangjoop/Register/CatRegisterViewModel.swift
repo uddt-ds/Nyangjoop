@@ -21,6 +21,8 @@ final class CatRegisterViewModel: ViewModelProtocol {
     
     private let locationTextRelay = BehaviorRelay<String>(value: "위치 정보 가져오는 중")
 
+    private let reward = RewardHelper()
+
     struct Input {
         let viewDidLoad: Observable<Void>
         let photoWithMetadataSelected: Observable<PhotoWithMetadata>
@@ -268,6 +270,13 @@ final class CatRegisterViewModel: ViewModelProtocol {
                     observer.onCompleted()
                     return Disposables.create()
                 }
+                
+                // 츄르 체크 (등록 모드에서만)
+                guard ChurService.shared.hasEnoughChurForRegistration() else {
+                    observer.onNext(.failure(ChurError.insufficientChur))
+                    observer.onCompleted()
+                    return Disposables.create()
+                }
             }
             
             // 기본 이미지 체크
@@ -341,6 +350,9 @@ final class CatRegisterViewModel: ViewModelProtocol {
                                             lat: finalLocation.latitude,
                                             lon: finalLocation.longitude)
                     try self.realmManager.saveVisitLog(visitLog, toCatId: cat.id)
+                    
+                    // 츄르 차감
+                    try ChurService.shared.deductChurForRegistration()
                     
                     observer.onNext(.success("고양이가 성공적으로 등록되었습니다!"))
                 }

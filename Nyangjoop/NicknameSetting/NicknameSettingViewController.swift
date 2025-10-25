@@ -286,6 +286,10 @@ final class NicknameSettingViewController: BaseViewController {
         
         UserDefaults.standard.set(nickname, forKey: "nickname")
         
+        if !isEditMode {
+            ChurService.shared.initializeChurIfNeeded()
+        }
+        
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         
@@ -299,6 +303,7 @@ final class NicknameSettingViewController: BaseViewController {
     
     @objc private func skipButtonTapped() {
         UserDefaults.standard.set("묘험가", forKey: "nickname")
+        ChurService.shared.initializeChurIfNeeded()
         navigateToMainScreen()
     }
     
