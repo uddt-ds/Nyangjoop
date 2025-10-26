@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AppLovinInterstitialUnitID</key>
+	<string>$(APPLOVIN_INTERSTITIAL_UNIT_ID)</string>
+	<key>AppLovinSdkKey</key>
+	<string>$(APPLOVIN_SDK_KEY)</string>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
 	<key>AdBannerUnitID</key>

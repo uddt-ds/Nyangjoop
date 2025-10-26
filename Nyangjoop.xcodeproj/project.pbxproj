@@ -21,6 +21,7 @@
 		9BCEADCE2E97CFBA00024B99 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */; };
 		9BCEADD02E97CFBA00024B99 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */; };
 		9BD465B02EA11575009D1FAE /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 9BD465AF2EA11575009D1FAE /* GoogleMobileAds */; };
+		9BD951EF2EAE5BA800F65E15 /* AppLovinSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 9BD951EE2EAE5BA800F65E15 /* AppLovinSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -82,6 +83,7 @@
 				9BCB01EC2E868968005493A9 /* RxCocoa in Frameworks */,
 				9BCB01F02E868968005493A9 /* RxSwift in Frameworks */,
 				9BCB03682E8BAF25005493A9 /* Alamofire in Frameworks */,
+				9BD951EF2EAE5BA800F65E15 /* AppLovinSDK in Frameworks */,
 				9BCB02332E86AFBD005493A9 /* RealmSwift in Frameworks */,
 				9BCEADCE2E97CFBA00024B99 /* FirebaseCrashlytics in Frameworks */,
 				9BCB01E92E868953005493A9 /* SnapKit in Frameworks */,
@@ -147,6 +149,7 @@
 				9BCEADCD2E97CFBA00024B99 /* FirebaseCrashlytics */,
 				9BCEADCF2E97CFBA00024B99 /* FirebaseMessaging */,
 				9BD465AF2EA11575009D1FAE /* GoogleMobileAds */,
+				9BD951EE2EAE5BA800F65E15 /* AppLovinSDK */,
 			);
 			productName = Nyangjoop;
 			productReference = 9BCBFD922E84C4A3005493A9 /* Nyangjoop.app */;
@@ -185,6 +188,7 @@
 				9BCEACB12E95CFC200024B99 /* XCRemoteSwiftPackageReference "Toast-Swift" */,
 				9BCEADCA2E97CFBA00024B99 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				9BD465AE2EA11575009D1FAE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				9BD951ED2EAE5BA800F65E15 /* XCRemoteSwiftPackageReference "AppLovin-MAX-Swift-Package" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BCBFD932E84C4A3005493A9 /* Products */;
@@ -567,6 +571,14 @@
 				minimumVersion = 12.12.0;
 			};
 		};
+		9BD951ED2EAE5BA800F65E15 /* XCRemoteSwiftPackageReference "AppLovin-MAX-Swift-Package" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AppLovin/AppLovin-MAX-Swift-Package";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -629,6 +641,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9BD465AE2EA11575009D1FAE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		9BD951EE2EAE5BA800F65E15 /* AppLovinSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BD951ED2EAE5BA800F65E15 /* XCRemoteSwiftPackageReference "AppLovin-MAX-Swift-Package" */;
+			productName = AppLovinSDK;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

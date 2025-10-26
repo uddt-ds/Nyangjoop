@@ -19,4 +19,12 @@ enum AdConfig {
     static var interstitialAdUnitID: String {
         Bundle.main.object(forInfoDictionaryKey: "AdInterstitialUnitID") as? String ?? ""
     }
+
+    static var appLovinInterstitialAdUnitID: String {
+        Bundle.main.object(forInfoDictionaryKey: "AppLovinInterstitialUnitID") as? String ?? ""
+    }
+
+    static var appLovinSDKKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "AppLovinSdkKey") as? String ?? ""
+    }
 }
