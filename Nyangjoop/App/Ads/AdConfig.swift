@@ -19,8 +19,4 @@ enum AdConfig {
     static var interstitialAdUnitID: String {
         Bundle.main.object(forInfoDictionaryKey: "AdInterstitialUnitID") as? String ?? ""
     }
-    
-    static var rewardedAdUnitID: String {
-        Bundle.main.object(forInfoDictionaryKey: "AdRewardedUnitID") as? String ?? ""
-    }
 }
