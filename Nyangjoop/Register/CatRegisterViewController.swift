@@ -391,8 +391,6 @@ final class CatRegisterViewController: BaseViewController {
             genderSelectedSubject.onNext(2)
         }
 
-        InterstitialAdManager.shared.loadInterstitialAd()
-
         bind()
     }
     
