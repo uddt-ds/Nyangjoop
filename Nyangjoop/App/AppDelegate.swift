@@ -12,6 +12,7 @@ import FirebaseMessaging
 import GoogleMobileAds
 import AppTrackingTransparency
 import AdSupport
+import AppLovinSDK
 
 
 @main
@@ -20,7 +21,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
         MobileAds.shared.start()
-        
+
+        // AppLovin MAX SDK 초기화 (최신 방식)
+        let sdkKey = AdConfig.appLovinSDKKey // Info.plist에서 가져오거나 직접 입력
+        let initConfig = ALSdkInitializationConfiguration(sdkKey: sdkKey) { builder in
+            builder.mediationProvider = ALMediationProviderMAX
+        }
+
+        ALSdk.shared().initialize(with: initConfig) { sdkConfig in
+            print("AppLovin SDK 초기화 완료")
+        }
+
         let bannerWidth = UIScreen.main.bounds.width - 40
         BannerAdManager.shared.preloadBannerAd(width: bannerWidth)
 
