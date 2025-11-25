@@ -226,13 +226,10 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     func calculateImageHeight(from filePath: String, targetWidth: CGFloat) -> CGFloat {
         guard !filePath.isEmpty else { return targetWidth * 0.7 }
         
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fullPath = documentsPath.appending(path: filePath)
-        
-        guard let image = UIImage(contentsOfFile: fullPath.path()) else {
+        guard let image = FileManager.loadImageWithCache(fileName: filePath) else {
             return targetWidth * 0.7
         }
-        
+
         let aspectRatio = image.size.height / image.size.width
         return targetWidth * aspectRatio
     }
@@ -244,10 +241,7 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
             return
         }
 
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fullPath = documentsPath.appending(path: filePath)
-
-        if let image = UIImage(contentsOfFile: fullPath.path()) {
+        if let image = FileManager.loadImageWithCache(fileName: filePath) {
             imageView.image = image
         } else {
             imageView.image = UIImage(systemName: "photo")

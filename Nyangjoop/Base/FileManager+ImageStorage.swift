@@ -37,7 +37,24 @@ extension FileManager {
         let filePath = documentsDirectory.appendingPathComponent(fileName)
         return UIImage(contentsOfFile: filePath.path)
     }
-    
+
+    // 캐시를 사용해서 이미지 로드
+    static func loadImageWithCache(fileName: String) -> UIImage? {
+        // 캐시된 이미지 있는지 확인, 있으면 cached된 이미지 Return
+        if let cachedImage = ImageCacheManager.shared.getImage(forKey: fileName) {
+            return cachedImage
+        }
+
+        // 디스크에서 이미지 로드
+        guard let image = loadImage(fileName: fileName) else {
+            return nil
+        }
+
+        // 캐시에 저장
+        ImageCacheManager.shared.setImage(image, forKey: fileName)
+        return image
+    }
+
     /// Documents 디렉토리에서 이미지 삭제
     static func deleteImage(fileName: String) -> Bool {
         let filePath = documentsDirectory.appendingPathComponent(fileName)
