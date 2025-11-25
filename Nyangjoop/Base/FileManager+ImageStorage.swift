@@ -39,23 +39,61 @@ extension FileManager {
     }
 
     // 캐시를 사용해서 이미지 로드
-    static func loadImageWithCache(fileName: String) -> UIImage? {
+    static func loadImageWithCache(fileName: String, targetSize: CGSize? = nil) -> UIImage? {
+
+        let cacheKey: String
+        if let targetSize = targetSize {
+            cacheKey = "\(fileName)_\(Int(targetSize.width))x\(Int(targetSize.height))"
+        } else {
+            cacheKey = fileName
+        }
+        
         // 캐시된 이미지 있는지 확인, 있으면 cached된 이미지 Return
-        if let cachedImage = ImageCacheManager.shared.getImage(forKey: fileName) {
+        if let cachedImage = ImageCacheManager.shared.getImage(forKey: cacheKey) {
             return cachedImage
         }
 
+        let filePath = documentsDirectory.appendingPathComponent(fileName)
+
         // 디스크에서 이미지 로드
-        guard let image = loadImage(fileName: fileName) else {
+        guard let image = loadImageDownsampled(at: filePath, targetSize: targetSize) else {
             return nil
         }
-
+        
         // 캐시에 저장
-        ImageCacheManager.shared.setImage(image, forKey: fileName)
+        ImageCacheManager.shared.setImage(image, forKey: cacheKey)
         return image
     }
 
+    // 이미지 다운 샘플링
+    private static func loadImageDownsampled(at url: URL, targetSize: CGSize?) -> UIImage? {
+        guard let targetSize = targetSize, targetSize.width > 0, targetSize.height > 0 else {
+            return UIImage(contentsOfFile: url.path)
+        }
+
+        let imageSourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, imageSourceOptions) else {
+            return nil
+        }
+
+        let maxDimensionInPixels = max(targetSize.width, targetSize.height) * UIScreen.main.scale
+
+        let downsampleOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimensionInPixels
+        ] as CFDictionary
+
+        guard let downsampledImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions) else {
+            return UIImage(contentsOfFile: url.path)
+        }
+
+        return UIImage(cgImage: downsampledImage)
+    }
+
     /// Documents 디렉토리에서 이미지 삭제
+    @discardableResult
     static func deleteImage(fileName: String) -> Bool {
         let filePath = documentsDirectory.appendingPathComponent(fileName)
         

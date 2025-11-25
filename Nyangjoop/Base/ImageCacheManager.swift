@@ -12,10 +12,14 @@ final class ImageCacheManager {
 
     private let cache = NSCache<NSString, UIImage>()
 
-    private init() {
-        cache.countLimit = 100
-        cache.totalCostLimit = 50 * 1024 * 1024
+    private var sizeCache: [String: CGSize] = [:]
+    private let sizeCacheLock = NSLock()
 
+    private init() {
+        cache.countLimit = 20
+        cache.totalCostLimit = 30 * 1024 * 1024
+
+        // 메모리 경고 시 캐시 정리
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(clearCache),
@@ -35,12 +39,32 @@ final class ImageCacheManager {
 
     // 캐시에 이미지 저장
     func setImage(_ image: UIImage, forKey key: String) {
-        cache.setObject(image, forKey: key as NSString)
+        guard let cgImage = image.cgImage else { return }
+
+        let cost = cgImage.bytesPerRow * cgImage.height
+        cache.setObject(image, forKey: key as NSString, cost: cost)
+    }
+
+    func setImageSize(_ size: CGSize, forKey key: String) {
+        sizeCacheLock.lock()
+        sizeCache[key] = size
+        sizeCacheLock.unlock()
+    }
+
+    func getImageSize(forKey key: String) -> CGSize? {
+        sizeCacheLock.lock()
+        defer { sizeCacheLock.unlock() }
+        return sizeCache[key]
     }
 
     // 캐시 삭제
     @objc func clearCache() {
         cache.removeAllObjects()
+
+        sizeCacheLock.lock()
+        sizeCache.removeAll()
+        sizeCacheLock.unlock()
+
         print("ImageCacheManager 캐시 전체 삭제")
     }
 
@@ -49,4 +73,7 @@ final class ImageCacheManager {
         cache.removeObject(forKey: key as NSString)
     }
 
+    func clearAllCaches() {
+        clearCache()
+    }
 }

@@ -233,9 +233,16 @@ extension LogViewController: UICollectionViewDataSource {
         let visitLog = visitLogsCache[indexPath.item]
         let cellWidth = (collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right) / 2
         
-        let dummyCell = LogRecordCell()
-        let imageHeight = dummyCell.calculateImageHeight(from: visitLog.filePath, targetWidth: cellWidth - 16)
-        
+        let imageHeight: CGFloat
+
+        if let cachedSize = ImageCacheManager.shared.getImageSize(forKey: visitLog.filePath) {
+            let aspectRatio = cachedSize.height / cachedSize.width
+            imageHeight = (cellWidth - 16) * aspectRatio
+        } else {
+            let dummyCell = LogRecordCell()
+            imageHeight = dummyCell.calculateImageHeight(from: visitLog.filePath, targetWidth: cellWidth - 16)
+        }
+
         cell.configure(with: visitLog, imageHeight: imageHeight)
         return cell
     }

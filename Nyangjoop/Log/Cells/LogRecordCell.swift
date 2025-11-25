@@ -146,8 +146,9 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
         formatter.dateFormat = "yyyy. MM. dd"
         dateLabel.text = formatter.string(from: visitLog.date)
 
-        loadImage(from: visitLog.filePath)
-        
+        // imageHeight를 loadImage에 전달
+        loadImage(from: visitLog.filePath, targetHeight: imageHeight)
+
         imageView.snp.updateConstraints { make in
             make.height.equalTo(imageHeight)
         }
@@ -225,23 +226,41 @@ final class LogRecordCell: UICollectionViewCell, IdentifierProtocol {
     
     func calculateImageHeight(from filePath: String, targetWidth: CGFloat) -> CGFloat {
         guard !filePath.isEmpty else { return targetWidth * 0.7 }
-        
-        guard let image = FileManager.loadImageWithCache(fileName: filePath) else {
+
+        if let cachedSize = ImageCacheManager.shared.getImageSize(forKey: filePath) {
+            let aspectRatio = cachedSize.height / cachedSize.width
+            return targetWidth * aspectRatio
+        }
+
+        let fullPath = FileManager.documentsDirectory.appendingPathComponent(filePath)
+
+        guard let imageSource = CGImageSourceCreateWithURL(fullPath as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
+              let width = properties[kCGImagePropertyPixelWidth as String] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight as String] as? CGFloat else {
             return targetWidth * 0.7
         }
 
-        let aspectRatio = image.size.height / image.size.width
+        let imageSize = CGSize(width: width, height: height)
+        ImageCacheManager.shared.setImageSize(imageSize, forKey: filePath)
+
+        let aspectRatio = height / width
         return targetWidth * aspectRatio
     }
 
-    private func loadImage(from filePath: String) {
+    private func loadImage(from filePath: String, targetHeight: CGFloat) {
         guard !filePath.isEmpty else {
             imageView.image = UIImage(systemName: "photo")
             imageView.tintColor = .systemGray4
             return
         }
 
-        if let image = FileManager.loadImageWithCache(fileName: filePath) {
+        // imageView의 실제 너비와 전달받은 높이로 targetSize 계산
+        // containerView inset(8) + imageView inset(8) = 16씩 양쪽 제외
+        let imageWidth = contentView.bounds.width - 32
+        let targetSize = CGSize(width: imageWidth, height: targetHeight)
+
+        if let image = FileManager.loadImageWithCache(fileName: filePath, targetSize: targetSize) {
             imageView.image = image
         } else {
             imageView.image = UIImage(systemName: "photo")
