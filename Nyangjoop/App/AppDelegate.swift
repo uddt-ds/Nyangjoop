@@ -22,8 +22,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         MobileAds.shared.start()
 
-        // AppLovin MAX SDK 초기화 (최신 방식)
-        let sdkKey = AdConfig.appLovinSDKKey // Info.plist에서 가져오거나 직접 입력
+        // AppLovin MAX SDK 초기화 미사용 처리 (광고 필요 시 주석 해제)
+        /*
+        let sdkKey = AdConfig.appLovinSDKKey
         let initConfig = ALSdkInitializationConfiguration(sdkKey: sdkKey) { builder in
             builder.mediationProvider = ALMediationProviderMAX
         }
@@ -31,9 +32,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         ALSdk.shared().initialize(with: initConfig) { sdkConfig in
             print("AppLovin SDK 초기화 완료")
         }
+        */
 
+        // 배너 광고 프리로드 미사용 처리 (광고 필요 시 주석 해제)
+        /*
         let bannerWidth = UIScreen.main.bounds.width - 40
         BannerAdManager.shared.preloadBannerAd(width: bannerWidth)
+        */
 
         IQKeyboardManager.shared.isEnabled = true
         IQKeyboardManager.shared.resignOnTouchOutside = true

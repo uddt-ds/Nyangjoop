@@ -42,6 +42,11 @@ final class HybridInterstitialAdManager: NSObject {
     }
 
     func loadAd() {
+        // 광고 로드 미사용 처리 (광고 필요 시 주석 해제)
+        print("[HybridAdManager] 광고 로드 미사용")
+        return
+
+        /* 광고 필요 시 아래 주석 해제
         guard !isLoading else {
             print("이미 광고 로딩 중입니다")
             return
@@ -49,6 +54,7 @@ final class HybridInterstitialAdManager: NSObject {
 
         isLoading = true
         loadAdMobAd()
+        */
     }
 
     func show(from viewController: UIViewController) {
@@ -78,6 +84,8 @@ final class HybridInterstitialAdManager: NSObject {
         return admobInterstitial != nil || appLovinManager?.isReady() == true
     }
 
+    // AdMob 광고 로드 미사용 처리 (광고 필요 시 주석 해제)
+    /*
     private func loadAdMobAd() {
         print("AdMob 전면광고 로드 시도")
 
@@ -89,13 +97,17 @@ final class HybridInterstitialAdManager: NSObject {
 
             if let error = error {
                 print("AdMob 전면광고 로드 실패: \(error.localizedDescription)")
-                self.loadAppLovinAd()
+                // AppLovin Fallback 미사용 처리 (광고 필요 시 주석 해제)
+                // self.loadAppLovinAd()
+                self.delegate?.hybridInterstitialDidFailToLoad()
                 return
             }
 
             guard let ad = ad else {
                 print("AdMob 전면광고 로드 실패: ad is nil")
-                self.loadAppLovinAd()
+                // AppLovin Fallback 미사용 처리 (광고 필요 시 주석 해제)
+                // self.loadAppLovinAd()
+                self.delegate?.hybridInterstitialDidFailToLoad()
                 return
             }
 
@@ -106,7 +118,10 @@ final class HybridInterstitialAdManager: NSObject {
             self.delegate?.hybridInterstitialDidLoad(from: .admob)
         }
     }
+    */
 
+    // AppLovin 광고 로드 미사용 처리 (광고 필요 시 주석 해제)
+    /*
     private func loadAppLovinAd() {
         print("AppLovin 전면광고 로드 시도")
 
@@ -116,6 +131,7 @@ final class HybridInterstitialAdManager: NSObject {
 
         appLovinManager.loadAd()
     }
+    */
 
     func destroy() {
         admobInterstitial = nil
@@ -127,8 +143,8 @@ final class HybridInterstitialAdManager: NSObject {
     }
 }
 
-// MARK: - GADFullScreenContentDelegate
-
+// MARK: - GADFullScreenContentDelegate (광고 미사용 처리 - 광고 필요 시 주석 해제)
+/*
 extension HybridInterstitialAdManager: FullScreenContentDelegate {
     func adDidRecordImpression(_ ad: FullScreenPresentingAd) {
         print("AdMob 전면광고 노출 기록")
@@ -155,9 +171,10 @@ extension HybridInterstitialAdManager: FullScreenContentDelegate {
         delegate?.hybridInterstitialDidDismiss(from: .admob)
     }
 }
+*/
 
-// MARK: - AppLovinInterstitialDelegate
-
+// MARK: - AppLovinInterstitialDelegate (미사용 처리 - 광고 필요 시 주석 해제)
+/*
 extension HybridInterstitialAdManager: AppLovinInterstitialDelegate {
     func appLovinInterstitialDidLoad() {
         print("AppLovin 전면광고 로드 성공")
@@ -188,3 +205,4 @@ extension HybridInterstitialAdManager: AppLovinInterstitialDelegate {
         delegate?.hybridInterstitialDidFailToPresent(error: error)
     }
 }
+*/

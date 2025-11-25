@@ -227,15 +227,16 @@ final class ProfileViewController: BaseViewController {
 
     private var bannerView: BannerView!
     private var isBannerLoaded = false
-    
+
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
     }
-    
+
     override func configureHierarchy() {
-        if bannerView == nil {
-            setupBannerView()
-        }
+        // 배너 광고 숨김 처리 (광고 필요 시 주석 해제)
+        // if bannerView == nil {
+        //     setupBannerView()
+        // }
 
         super.configureHierarchy()
         
@@ -243,7 +244,8 @@ final class ProfileViewController: BaseViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         
-        [greetingCardView, bannerView, activityHeaderLabel, activityCardView,
+        // 배너 광고 제외 (광고 필요 시 주석 해제)
+        [greetingCardView, activityHeaderLabel, activityCardView,
          achievementHeaderLabel, achievementContainerView/*, logoutButton*/].forEach {
             contentView.addSubview($0)
         }
@@ -275,12 +277,14 @@ final class ProfileViewController: BaseViewController {
         achievementScrollView.addSubview(achievementStackView)
     }
     
+    // 배너 광고 로드 로직 미사용 처리 (광고 필요 시 주석 해제)
+    /*
     private func setupBannerView() {
         let viewWidth = view.frame.width - 40
         let (banner, isReady) = BannerAdManager.shared.getBannerView(for: self, width: viewWidth)
         bannerView = banner
         bannerView.delegate = self
-        
+
         if isReady {
             print("[프로필] 미리 로드된 광고 즉시 표시")
             bannerView.alpha = 1
@@ -290,6 +294,7 @@ final class ProfileViewController: BaseViewController {
             bannerView.alpha = 0
         }
     }
+    */
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -368,11 +373,12 @@ final class ProfileViewController: BaseViewController {
             make.bottom.equalToSuperview().offset(-16)
         }
 
-        bannerView.snp.makeConstraints { make in
-            make.top.equalTo(greetingCardView.snp.bottom).offset(10)
-            make.leading.trailing.equalToSuperview().inset(20)
-            bannerHeightConstraint = make.height.equalTo(bannerView.frame.height).constraint
-        }
+        // 배너 광고 레이아웃 제외 (광고 필요 시 주석 해제)
+        // bannerView.snp.makeConstraints { make in
+        //     make.top.equalTo(greetingCardView.snp.bottom).offset(10)
+        //     make.leading.trailing.equalToSuperview().inset(20)
+        //     bannerHeightConstraint = make.height.equalTo(bannerView.frame.height).constraint
+        // }
 
         titleBadgeView.snp.makeConstraints { make in
             make.height.equalTo(28)
@@ -409,7 +415,8 @@ final class ProfileViewController: BaseViewController {
         }
         
         activityHeaderLabel.snp.makeConstraints { make in
-            make.top.equalTo(bannerView.snp.bottom).offset(20)
+            // 배너 광고 제외로 인한 레이아웃 수정
+            make.top.equalTo(greetingCardView.snp.bottom).offset(20)
             make.leading.equalToSuperview().offset(20)
         }
 
@@ -631,7 +638,8 @@ extension ProfileViewController: AchievementItemViewDelegate {
     }
 }
 
-// MARK: - GADBannerViewDelegate
+// MARK: - GADBannerViewDelegate (배너 광고 미사용 처리 - 광고 필요 시 주석 해제)
+/*
 extension ProfileViewController: BannerViewDelegate {
 
     func bannerViewDidReceiveAd(_ bannerView: BannerView) {
@@ -653,3 +661,4 @@ extension ProfileViewController: BannerViewDelegate {
         print("배너 광고 클릭됨")
     }
 }
+*/

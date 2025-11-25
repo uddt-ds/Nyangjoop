@@ -15,11 +15,13 @@ final class AdTriggerService {
     private let triggerInterval = 4
 
     private init() {
+        // 전면광고 미사용 처리 (광고 필요 시 주석 해제)
         adManager = HybridInterstitialAdManager(
-            admobAdUnitId: AdConfig.interstitialAdUnitID,
-            appLovinAdUnitId: AdConfig.appLovinInterstitialAdUnitID
+            admobAdUnitId: "", // AdMob 미사용
+            appLovinAdUnitId: "" // AppLovin 미사용
         )
-        adManager.loadAd()
+        // 광고 로드 미사용
+        // adManager.loadAd()
     }
     
     func incrementRegistrationCount() {
@@ -28,6 +30,11 @@ final class AdTriggerService {
     }
     
     func checkAndShowAdIfNeeded(from viewController: UIViewController, completion: @escaping () -> Void) {
+        // 전면광고 미사용 처리 (광고 필요 시 주석 해제)
+        print("[AdTriggerService] 전면광고 미사용 - 바로 completion 호출")
+        completion()
+
+        /* 광고 필요 시 아래 주석 해제
         if InAppPurchaseManager.shared.hasRemovedAds {
             print("[AdTriggerService] 광고 제거 구매 완료 - 광고 스킵")
             completion()
@@ -59,6 +66,7 @@ final class AdTriggerService {
             print("[AdTriggerService] 전면광고 표시 조건 미충족")
             completion()
         }
+        */
     }
 
     private var adCompletionHandler: (() -> Void)?
@@ -68,8 +76,8 @@ final class AdTriggerService {
     }
 }
 
-// MARK: - HybridInterstitialAdManagerDelegate
-
+// MARK: - HybridInterstitialAdManagerDelegate (광고 미사용 처리 - 광고 필요 시 주석 해제)
+/*
 extension AdTriggerService: HybridInterstitialAdManagerDelegate {
     func hybridInterstitialDidLoad(from source: InterstitialAdSource) {
         print("[AdTriggerService] 광고 로드 완료 - source: \(source)")
@@ -102,3 +110,4 @@ extension AdTriggerService: HybridInterstitialAdManagerDelegate {
         adCompletionHandler = nil
     }
 }
+*/

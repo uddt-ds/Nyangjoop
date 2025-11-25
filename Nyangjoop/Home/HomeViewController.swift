@@ -73,6 +73,7 @@ final class HomeViewController: BaseViewController {
         let view = UIView()
         view.backgroundColor = UIColor.churBg.withAlphaComponent(0.5)
         view.layer.cornerRadius = 22
+        view.isHidden = true  // 인앱결제 기능 숨김 (광고 필요 시 주석 해제)
         return view
     }()
     
@@ -106,6 +107,7 @@ final class HomeViewController: BaseViewController {
         button.tintColor = .white
         button.backgroundColor = .key
         button.layer.cornerRadius = 22
+        button.isHidden = true  // 인앱결제 기능 숨김 (광고 필요 시 주석 해제)
         return button
     }()
 
