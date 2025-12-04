@@ -180,6 +180,15 @@ final class InAppPurchaseManager {
                 do {
                     let transaction = try self.checkVerified(result)
 
+                    // Transaction 검사할 때 환불 상태 확인
+                    if self.checkRefund(transaction) {
+                        await MainActor.run {
+                            self.handleRefund(transaction)
+                        }
+                        await transaction.finish()
+                        continue
+                    }
+
                     if transaction.productID == self.adRemovalProductID {
                         await MainActor.run {
                             self.hasRemovedAds = true
@@ -217,6 +226,50 @@ final class InAppPurchaseManager {
             return 100
         default:
             return 0
+        }
+    }
+
+    // MARK: 환불 관련 로직 추가
+    private func checkRefund(_ transaction: Transaction) -> Bool {
+        return transaction.revocationDate != nil     // nil이 아니면 환불된 거래
+    }
+
+    private func handleRefund(_ transaction: Transaction) {
+        let id = String(transaction.id)
+
+        var set = Set(UserDefaults.standard.stringArray(forKey: processedKey) ?? [])
+        set.remove(id)
+        UserDefaults.standard.processedTxIds = set
+
+        // 츄르 차감(소모성 제품)
+        if transaction.productID != adRemovalProductID {
+            let amount = getChurAmount(for: transaction.productID)
+            ChurService.shared.addChur(amount: -amount)
+        } else {
+            // 광고 제거 환불 시 상태 복원
+            hasRemovedAds = false
+        }
+    }
+
+    // 환불 요청 API(앱 내에서 시트 형태로 present)
+    private func requestRefund(for transaction: Transaction) async throws {
+        guard let scene = UIApplication.shared.connectedScnenes.first as? UIWindowScene else {
+            return
+        }
+
+        do {
+            let status = try await transaction.beginRefundRequest(in: scene)
+
+            switch status {
+            case .success:
+                print("환불 요청이 제출되었습니다")
+            case .userCancelled:
+                print("환불 요청을 취소했습니다")
+            @unknown default:
+                break
+            }
+        } catch {
+            print("환불 요청 중 오류 발생: \(error)")
         }
     }
 }
