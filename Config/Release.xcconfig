@@ -11,5 +11,7 @@
 #include "Secret.xcconfig"
 
 PRODUCT_BUNDLE_IDENTIFIER = com.jean.Nyangjoop
+WIDGET_BUNDLE_IDENTIFIER = com.jean.Nyangjoop.NyangjoopWidget
 APP_DISPLAY_NAME = 냥냥
 API_BASE_URL = dapi.kakao.com
+APP_GROUP_ID = group.com.jean.Nyangjoop

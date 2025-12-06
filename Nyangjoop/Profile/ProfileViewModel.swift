@@ -44,6 +44,10 @@ final class ProfileViewModel: ViewModelProtocol {
             .map { _ -> (cats: Int, photos: Int, visits: Int) in
                 let cats = RealmManager.shared.fetchAllCats()          // [Cat]
                             let visits = RealmManager.shared.fetchAllVisitLogs()   // [VisitLog]
+
+                            // 위젯 데이터 동기화
+                            WidgetSyncManager.updateWidgetStatsFromRealm()
+
                             return (cats.count, visits.count, visits.count)
             }
         

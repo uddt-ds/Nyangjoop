@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>AppLovinInterstitialUnitID</key>
-	<string>$(APPLOVIN_INTERSTITIAL_UNIT_ID)</string>
-	<key>AppLovinSdkKey</key>
-	<string>$(APPLOVIN_SDK_KEY)</string>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
 	<key>AdBannerUnitID</key>
@@ -14,6 +10,12 @@
 	<string>$(AD_INTERSTITIAL_UNIT_ID)</string>
 	<key>AdRewardInterstitialUnitID</key>
 	<string>$(AD_REWARD_INTERSTITIAL_UNIT_ID)</string>
+	<key>AppGroupID</key>
+	<string>$(APP_GROUP_ID)</string>
+	<key>AppLovinInterstitialUnitID</key>
+	<string>$(APPLOVIN_INTERSTITIAL_UNIT_ID)</string>
+	<key>AppLovinSdkKey</key>
+	<string>$(APPLOVIN_SDK_KEY)</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8354537461647039~5959960222</string>
 	<key>UIAppFonts</key>

@@ -30,6 +30,7 @@ extension RealmManager {
     func saveCat(_ cat: Cat) throws {
         let realm = try newRealm()
         try realm.write { realm.add(cat, update: .modified) }
+        WidgetSyncManager.updateWidgetStatsFromRealm()
     }
 
     func fetchAllCats() -> [Cat] {
@@ -54,14 +55,15 @@ extension RealmManager {
 
         try realm.write {
             let visitLogs = Array(cat.visitLogs)
-            
+
             for log in visitLogs where !log.isInvalidated {
                 _ = FileManager.deleteImage(fileName: log.filePath)
             }
-            
+
             realm.delete(visitLogs)
             realm.delete(cat)
         }
+        WidgetSyncManager.updateWidgetStatsFromRealm()
     }
 
     func deleteCat(_ cat: Cat) throws {
@@ -84,6 +86,7 @@ extension RealmManager {
                           userInfo: [NSLocalizedDescriptionKey: "Cat not found"])
         }
         try realm.write { cat.visitLogs.append(visitLog) }
+        WidgetSyncManager.updateWidgetStatsFromRealm()
     }
 
     func fetchVisitLogs(forCatId catId: ObjectId) -> [VisitLog] {

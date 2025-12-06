@@ -78,7 +78,7 @@ extension PushNotificationManager {
 #if DEBUG
     static func sendTestAchievementNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "냥줍"
+        content.title = "냥냥"
         content.body = "획득한 칭호를 확인해보세요"
         content.sound = .default
         content.userInfo = ["type": NotificationType.achievement.rawValue]
