@@ -1,12 +1,9 @@
 //
-//  UIViewController+Extension.swift
+//  InAppPurchaseManager.swift
 //  Nyangjoop
 //
 //  Created by Lee on 10/17/25.
 //
-
-import Foundation
-import StoreKit
 
 import Foundation
 import StoreKit
@@ -252,8 +249,13 @@ final class InAppPurchaseManager {
     }
 
     // 환불 요청 API(앱 내에서 시트 형태로 present)
-    private func requestRefund(for transaction: Transaction) async throws {
-        guard let scene = UIApplication.shared.connectedScnenes.first as? UIWindowScene else {
+    func requestRefund(for productID: String) async throws {
+
+        guard let transaction = await findTransaction(for: productID) else {
+            throw PurchaseError.productNotFound
+        }
+
+        guard let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene else {
             return
         }
 
@@ -271,6 +273,17 @@ final class InAppPurchaseManager {
         } catch {
             print("환불 요청 중 오류 발생: \(error)")
         }
+    }
+
+    private func findTransaction(for productID: String) async -> Transaction? {
+        for await result in Transaction.all {
+            if case .verified(let transaction) = result,
+               transaction.productID == productID {
+                return transaction
+            }
+        }
+
+        return nil
     }
 }
 
