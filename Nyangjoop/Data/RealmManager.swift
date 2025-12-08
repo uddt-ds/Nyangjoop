@@ -19,7 +19,9 @@ final class RealmManager {
         return try newRealm()
     }
     
-    private func newRealm() throws -> Realm { try Realm() }
+    private func newRealm() throws -> Realm {
+        return try Realm(configuration: RealmMigrationService.getConfiguration())
+    }
 
 }
 

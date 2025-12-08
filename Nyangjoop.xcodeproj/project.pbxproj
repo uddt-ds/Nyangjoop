@@ -467,7 +467,8 @@
 				DEVELOPMENT_TEAM = 4G4JFKFU2U;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "냥냥 개발";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "고양이의 사진을 찍고 맵에 등록 및 기록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
@@ -483,7 +484,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.4;
+				MARKETING_VERSION = 1.6.1;
 				OTHER_LDFLAGS = "-ObjC";
 				OTHER_SWIFT_FLAGS = "-DDevDebug";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -511,7 +512,8 @@
 				DEVELOPMENT_TEAM = 4G4JFKFU2U;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Nyangjoop/App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "냥냥 개발";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "고양이의 사진을 찍고 맵에 등록 및 기록하기 위해 사진에 대한 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "사용자의 위치정보를 기반으로 고양이를 등록하고, 간식 가게 정보를 제공하기 위해 권한이 필요합니다. 승인하시겠습니까?";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "고양이 사진 선택을 위해 사진 라이브러리 접근 권한이 필요합니다. 승인하시겠습니까?";
@@ -527,7 +529,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.4;
+				MARKETING_VERSION = 1.6.1;
 				OTHER_LDFLAGS = "-ObjC";
 				OTHER_SWIFT_FLAGS = "-DDev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
