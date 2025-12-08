@@ -58,6 +58,7 @@ final class CatInfoView: UIView {
         label.font = FontSystem.main.font
         label.textAlignment = .center
         label.textColor = .label
+        label.lineBreakMode = .byTruncatingMiddle
         return label
     }()
     
@@ -184,6 +185,7 @@ final class CatInfoView: UIView {
         characterLabel.snp.makeConstraints { make in
             make.top.equalTo(photoContainerView.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
+            make.width.lessThanOrEqualTo(280)
         }
         
         genderStackView.snp.makeConstraints { make in
