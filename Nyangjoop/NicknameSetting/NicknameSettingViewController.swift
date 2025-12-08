@@ -187,16 +187,14 @@ final class NicknameSettingViewController: BaseViewController {
         if isEditMode {
             skipButton.isHidden = true
             
-            if let currentNickname = UserDefaults.standard.string(forKey: "nickname") {
-                nicknameTextField.text = currentNickname
-            }
+            nicknameTextField.text = UserDefaults.standard.nickname
         }
     }
     
     private func setupTitleLabel() {
         let fullText: String
         if isEditMode {
-            let currentNickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
+            let currentNickname = UserDefaults.standard.nickname
             let displayNickname: String
             
             if currentNickname.count > 7 {
@@ -284,8 +282,9 @@ final class NicknameSettingViewController: BaseViewController {
             return
         }
         
-        UserDefaults.standard.set(nickname, forKey: "nickname")
-        
+        UserDefaults.standard.nickname = nickname
+        UserDefaults.standard.hasSetNickname = true
+
         if !isEditMode {
             ChurService.shared.initializeChurIfNeeded()
         }
@@ -302,7 +301,8 @@ final class NicknameSettingViewController: BaseViewController {
     }
     
     @objc private func skipButtonTapped() {
-        UserDefaults.standard.set("묘험가", forKey: "nickname")
+        UserDefaults.standard.nickname = "묘험가"
+        UserDefaults.standard.hasSetNickname = true
         ChurService.shared.initializeChurIfNeeded()
         navigateToMainScreen()
     }

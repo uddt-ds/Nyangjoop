@@ -111,7 +111,7 @@ final class ProfileViewController: BaseViewController {
     
     private let descriptionLabel: UILabel = {
         let label = UILabel()
-        let nickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
+        let nickname = UserDefaults.standard.nickname
         label.text = "\(nickname)님"
         label.font = .systemFont(ofSize: 16)
         label.textColor = .secondaryLabel
@@ -339,7 +339,7 @@ final class ProfileViewController: BaseViewController {
     }
     
     private func updateNickname() {
-        let nickname = UserDefaults.standard.string(forKey: "nickname") ?? "묘험가"
+        let nickname = UserDefaults.standard.nickname
         descriptionLabel.text = "\(nickname)님"
     }
     

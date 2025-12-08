@@ -45,7 +45,7 @@ final class SplashViewController: BaseViewController {
     }
     
     private func checkNicknameAndNavigate() {
-        if let nickname = UserDefaults.standard.string(forKey: "nickname"), !nickname.isEmpty {
+        if UserDefaults.standard.hasSetNickname {
             showMainViewController()
         } else {
             showNicknameViewController()

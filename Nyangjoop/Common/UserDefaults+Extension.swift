@@ -8,6 +8,8 @@ extension UserDefaults {
         static let catRegistrationCount = "catRegistrationCount"
         static let processedTxIds = "iap.processedTxIds"
         static let appAccountToken = "iap.appAccountToken"
+        static let nickname = "nickname"
+        static let hasSetNickname = "hasSetNickname"
     }
     
     var userAddress: String? {
@@ -65,4 +67,23 @@ extension UserDefaults {
             set(newValue.uuidString, forKey: Keys.appAccountToken)
         }
     }
+
+    var nickname: String {
+        get {
+            return string(forKey: Keys.nickname) ?? ""
+        }
+        set {
+            set(newValue, forKey: Keys.nickname)
+        }
+    }
+
+    var hasSetNickname: Bool {
+        get {
+            return bool(forKey: Keys.hasSetNickname)
+        }
+        set {
+            set(newValue, forKey: Keys.hasSetNickname)
+        }
+    }
 }
+
