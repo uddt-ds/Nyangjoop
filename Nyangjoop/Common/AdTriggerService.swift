@@ -14,6 +14,8 @@ final class AdTriggerService {
     private let adManager: HybridInterstitialAdManager
     private let triggerInterval = 4
 
+    private let queue = DispatchQueue(label: "com.nyangjoop.adTrigger")
+
     private init() {
         // 전면광고 미사용 처리 (광고 필요 시 주석 해제)
         adManager = HybridInterstitialAdManager(
@@ -25,8 +27,10 @@ final class AdTriggerService {
     }
     
     func incrementRegistrationCount() {
-        UserDefaults.standard.catRegistrationCount += 1
-        print("[AdTriggerService] 등록 횟수: \(UserDefaults.standard.catRegistrationCount)")
+        queue.sync {
+            UserDefaults.standard.catRegistrationCount += 1
+            print("[AdTriggerService] 등록 횟수: \(UserDefaults.standard.catRegistrationCount)")
+        }
     }
     
     func checkAndShowAdIfNeeded(from viewController: UIViewController, completion: @escaping () -> Void) {
