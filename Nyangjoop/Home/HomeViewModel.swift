@@ -78,8 +78,8 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .share()
 
-        // 성공한 경우에만 위치 이동
-        let moveToCurrentLocation = currentLocationResult
+        // 현위치 버튼 - 성공한 경우에만 위치 이동
+        let moveToCurrentLocationFromButton = currentLocationResult
             .compactMap { result -> CLLocation? in
                 if case .success(let location) = result {
                     print("현재 위치로 이동: \(location.coordinate.latitude), \(location.coordinate.longitude)")
@@ -87,18 +87,6 @@ final class HomeViewModel: ViewModelProtocol {
                 }
                 return nil
             }
-            .asDriver(onErrorDriveWith: .empty()) // 에러 시에는 아무것도 emit하지 않음
-
-        // 에러 메시지 (권한 거부 제외)
-        let locationError = currentLocationResult
-            .compactMap { result -> String? in
-                if case .failure(let error) = result, error != .permissionDenied {
-                    print("위치 에러: \(error)")
-                    return error.errorDescription
-                }
-                return nil
-            }
-            .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
 
         // 권한 거부 시에만 권한 알림창 표시
         let showLocationPermissionAlert = currentLocationResult
@@ -194,9 +182,33 @@ final class HomeViewModel: ViewModelProtocol {
             }
             .asDriver(onErrorJustReturn: "")
 
+        // 간식 가게 버튼 - 성공한 경우에만 위치 이동
+        let moveToStoreLocation = storeLocationResult
+            .compactMap { result -> CLLocation? in
+                if case .success(let location) = result {
+                    print("간식 가게 검색 위치로 이동: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                    return location
+                }
+                return nil
+            }
+
+        // 두 위치 이동 merge
+        let moveToCurrentLocation = Observable.merge(moveToCurrentLocationFromButton, moveToStoreLocation)
+            .asDriver(onErrorDriveWith: .empty()) // 에러 시에는 아무것도 emit하지 않음
+
+        // 에러 메시지 (권한 거부 제외)
+        let locationError = currentLocationResult
+            .compactMap { result -> String? in
+                if case .failure(let error) = result, error != .permissionDenied {
+                    print("위치 에러: \(error)")
+                    return error.errorDescription
+                }
+                return nil
+            }
+            .asDriver(onErrorJustReturn: "위치를 가져올 수 없습니다")
+
         let showProfileView = input.profileTapped
             .asDriver(onErrorJustReturn: ())
-
 
         return Output(cats: cats,
                       isMenuExpanded: isMenuExpanded,
